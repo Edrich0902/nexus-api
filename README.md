@@ -1,58 +1,82 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Nexus API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Backend for **Nexus Hub** — a Laravel 11 REST API for a personal life hub: integrations, collections, media, and sports context. API-first and stateless so the Vue dashboard and a future mobile client share the same endpoints.
 
-## About Laravel
+**Local URL:** [http://api.nexus.test](http://api.nexus.test)  
+**Health check:** [http://api.nexus.test/up](http://api.nexus.test/up)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- PHP 8.3
+- Laravel 11
+- Laravel Sanctum (API token auth)
+- MySQL 8 (`nexus_db`)
+- Database-backed queues and cache
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Vision (short)
 
-## Learning Laravel
+Nexus consolidates personal data into modular domains — Spotify, GitHub, wine cellar, book library, kitchen, media vaults, optional social integrations, and sports/F1 — with a mobile app later for photo-driven collection intake. See [docs/VISION.md](docs/VISION.md) and [docs/ROADMAP.md](docs/ROADMAP.md).
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+**Immediate next focus when building features:** finish authentication, then tackle the next milestone (likely Spotify) with a short kickoff spec.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Quick Start
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+All Artisan and Composer commands run inside the Laradock workspace container:
 
 ```bash
-composer require laravel/boost --dev
+# From the host
+docker exec -it laradock-workspace-1 bash
+cd /var/www/nexus-api
 
-php artisan boost:install
+composer install
+cp .env.example .env   # skip if .env already exists
+php artisan key:generate
+php artisan migrate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Environment is pre-configured for the Laradock MySQL service:
 
-## Contributing
+```dotenv
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=nexus_db
+DB_USERNAME=root
+DB_PASSWORD=root
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## API Design Principles
 
-## Code of Conduct
+- **RESTful and stateless** — no session-dependent endpoints under `/api/*`.
+- **Sanctum token auth** — bearer tokens for the web SPA and future mobile app.
+- **JSON-first** — all `/api/*` routes return JSON (configured in `bootstrap/app.php`).
+- **Background sync** — external ingestion (Spotify, GitHub, sports, …) via queued jobs, not inline in request handlers.
+- **Module namespaces** — each pillar (Spotify, Cellar, Library, …) owns models, migrations, controllers, jobs, and services.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Project Structure (planned)
 
-## Security Vulnerabilities
+```
+app/
+├── Http/Controllers/Api/     # REST controllers grouped by module
+├── Models/                   # Eloquent models
+├── Services/                 # External API clients & business logic
+├── Jobs/                     # Async sync and ingestion jobs
+└── ...
+routes/
+└── api.php                   # All API routes (module-prefixed)
+database/migrations/          # Schema per module
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Documentation
 
-## License
+| Document | Description |
+|----------|-------------|
+| [docs/VISION.md](docs/VISION.md) | Product vision and pillars |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | Milestone roadmap (high-level) |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, modules, data flow |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Local dev workflow, Artisan, queues |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Related
+
+- Web client: [`../nexus-web/`](../nexus-web/) → [http://nexus.test](http://nexus.test)
+- Monorepo overview: [`../README.md`](../README.md)
