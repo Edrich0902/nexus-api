@@ -57,6 +57,18 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('spotify-oauth-callback', function (Request $request) {
             return Limit::perMinute(20)->by($request->ip());
         });
+
+        RateLimiter::for('spotify-search', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('spotify-catalog', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('spotify-library', function (Request $request) {
+            return Limit::perMinute(40)->by($request->user()?->id ?: $request->ip());
+        });
     }
 
     private function configureHttps(): void

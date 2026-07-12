@@ -24,7 +24,7 @@ class SpotifyConnectionTest extends TestCase
         config([
             'services.spotify.client_id' => 'test-client-id',
             'services.spotify.client_secret' => 'test-client-secret',
-            'services.spotify.redirect' => 'http://127.0.0.1/spotify/callback',
+            'services.spotify.redirect' => 'http://127.0.0.1:80/spotify/callback',
             'services.spotify.frontend_redirect' => 'http://nexus.test/spotify',
         ]);
     }
@@ -32,6 +32,17 @@ class SpotifyConnectionTest extends TestCase
     public function test_connect_requires_authentication(): void
     {
         $this->getJson('/api/v1/spotify/connect')->assertUnauthorized();
+    }
+
+    public function test_unauthenticated_html_accept_returns_401_not_login_route_error(): void
+    {
+        $this->get('/api/v1/spotify/status', [
+            'Accept' => 'text/html',
+        ])
+            ->assertUnauthorized()
+            ->assertJson([
+                'message' => 'Unauthenticated.',
+            ]);
     }
 
     public function test_connect_returns_authorization_url_and_stores_state(): void
@@ -46,7 +57,7 @@ class SpotifyConnectionTest extends TestCase
         $url = $response->json('url');
         $this->assertStringContainsString('accounts.spotify.com/authorize', $url);
         $this->assertStringContainsString('client_id=test-client-id', $url);
-        $this->assertStringContainsString(urlencode('http://127.0.0.1/spotify/callback'), $url);
+        $this->assertStringContainsString(urlencode('http://127.0.0.1:80/spotify/callback'), $url);
 
         $this->assertDatabaseCount('integration_oauth_states', 1);
         $this->assertDatabaseHas('integration_oauth_states', [

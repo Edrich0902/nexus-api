@@ -26,6 +26,23 @@ class SpotifyPlaylistController extends Controller
         );
     }
 
+    /**
+     * @return array{playlist_ids: list<string>}
+     */
+    public function containing(Request $request): array
+    {
+        $validated = $request->validate([
+            'uri' => ['required', 'string'],
+        ]);
+
+        return [
+            'playlist_ids' => $this->playlists->playlistIdsContainingUri(
+                $request->user(),
+                $validated['uri'],
+            ),
+        ];
+    }
+
     public function show(Request $request, string $playlistId): SpotifyPlaylistResource
     {
         if ($request->boolean('refresh')) {

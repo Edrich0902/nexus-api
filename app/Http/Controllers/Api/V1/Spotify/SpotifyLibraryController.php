@@ -32,10 +32,46 @@ class SpotifyLibraryController extends Controller
     public function contains(Request $request): JsonResponse
     {
         $uris = array_values(array_filter(explode(',', (string) $request->query('uris', ''))));
+        $uris = array_slice($uris, 0, 50);
 
         return response()->json([
             'uris' => $uris,
             'contains' => $this->library->contains($request->user(), $uris),
         ]);
+    }
+
+    public function tracks(Request $request): JsonResponse
+    {
+        return response()->json(
+            $this->library->savedTracks(
+                $request->user(),
+                (int) $request->query('limit', 20),
+                (int) $request->query('offset', 0),
+            )
+        );
+    }
+
+    public function albums(Request $request): JsonResponse
+    {
+        return response()->json(
+            $this->library->savedAlbums(
+                $request->user(),
+                (int) $request->query('limit', 20),
+                (int) $request->query('offset', 0),
+            )
+        );
+    }
+
+    public function artists(Request $request): JsonResponse
+    {
+        $after = $request->query('after');
+
+        return response()->json(
+            $this->library->followedArtists(
+                $request->user(),
+                (int) $request->query('limit', 20),
+                is_string($after) && $after !== '' ? $after : null,
+            )
+        );
     }
 }

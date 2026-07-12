@@ -19,7 +19,7 @@ class SpotifyIntegrationTokenRefreshTest extends TestCase
         config([
             'services.spotify.client_id' => 'test-client-id',
             'services.spotify.client_secret' => 'test-client-secret',
-            'services.spotify.redirect' => 'http://127.0.0.1/spotify/callback',
+            'services.spotify.redirect' => 'http://127.0.0.1:80/spotify/callback',
         ]);
 
         $user = User::factory()->create();

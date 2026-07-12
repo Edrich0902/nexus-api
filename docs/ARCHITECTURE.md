@@ -65,10 +65,13 @@ Spotify specifically:
 
 | Concern | Strategy |
 |---------|----------|
-| OAuth callback (local) | `http://127.0.0.1/spotify/callback` (Spotify requires loopback for non-HTTPS) |
+| OAuth callback (local) | `http://127.0.0.1:80/spotify/callback` (Spotify requires loopback + explicit port for non-HTTPS) |
 | OAuth callback (prod) | `https://<api-host>/spotify/callback` |
 | Tokens | Encrypted on `integration_connections` |
-| Player / devices / queue | Live proxy via `/api/v1/spotify/player*` |
+| Player / devices / queue | Live proxy via `/api/v1/spotify/player*` (`spotify-player` 120/min) |
+| Search | Live proxy `GET /api/v1/spotify/search` (`spotify-search` 30/min, limit ≤10) |
+| Artist / album catalog | Live proxy + 10m cache (`spotify-catalog` 60/min); local fallback on 403 |
+| Library browse | `GET /library/tracks|albums|artists` (`spotify-library` 40/min) |
 | Recent / tops / playlists / taste | Synced to `spotify_*` tables; served from DB |
 | Library + playlist mutations | Write-through to Spotify, then re-sync |
 
@@ -120,6 +123,9 @@ Each session includes:
 
 - All `/api/*` routes: 60 requests / minute per user or IP
 - `POST /api/v1/auth/login`: 5 requests / minute per IP + email
+- Spotify API: `spotify-player` 120/min, `spotify-search` 30/min, `spotify-catalog` 60/min, `spotify-library` 40/min, `spotify-sync` 6/min
+- Prefer `file` (or redis) for `CACHE_STORE` — the `database` cache driver can deadlock under concurrent RateLimiter writes (`spotify-player` polling)
+- Spotify client: hub loads are staggered; HTTP layer backs off on `429` / `Retry-After`; player poll interval doubles on rate-limit up to 20s
 - CORS allowlist via `CORS_ALLOWED_ORIGINS` (local `nexus.test`, Vite `localhost:5173`, production `https://nexus.barforge.co.za`)
 
 ### HTTPS
@@ -166,7 +172,7 @@ Queue driver today: `database`. Redis later if Laradock Redis is enabled.
 # Spotify — local redirect MUST be loopback (Spotify blocks http://api.nexus.test)
 SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
-SPOTIFY_REDIRECT_URI=http://127.0.0.1/spotify/callback
+SPOTIFY_REDIRECT_URI=http://127.0.0.1:80/spotify/callback
 SPOTIFY_FRONTEND_REDIRECT=http://nexus.test/spotify
 
 # GitHub (when prioritized)

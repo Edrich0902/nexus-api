@@ -6,6 +6,8 @@ use App\Integrations\Spotify\SpotifyIntegration;
 use App\Jobs\Spotify\SyncPlaylistItemsJob;
 use App\Jobs\Spotify\SyncPlaylistsJob;
 use App\Models\Spotify\SpotifyPlaylist;
+use App\Models\Spotify\SpotifyPlaylistItem;
+use App\Models\Spotify\SpotifyTrack;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -23,6 +25,22 @@ class SpotifyPlaylistService
             ->where('user_id', $user->id)
             ->orderBy('name')
             ->paginate($perPage);
+    }
+
+    /**
+     * Playlist Spotify IDs that already contain the given track URI (from local sync).
+     *
+     * @return list<string>
+     */
+    public function playlistIdsContainingUri(User $user, string $uri): array
+    {
+        return SpotifyPlaylist::query()
+            ->where('user_id', $user->id)
+            ->whereHas('items.track', fn ($query) => $query->where('uri', $uri))
+            ->orderBy('name')
+            ->pluck('spotify_id')
+            ->values()
+            ->all();
     }
 
     public function findForUser(User $user, string $spotifyId): SpotifyPlaylist
@@ -121,6 +139,7 @@ class SpotifyPlaylistService
         }
 
         $this->spotify->post($connection, "/playlists/{$spotifyId}/items", $body);
+        $this->applyLocalAdd($user, $spotifyId, $uris);
         SyncPlaylistItemsJob::dispatch($user->id, $spotifyId);
     }
 
@@ -133,6 +152,7 @@ class SpotifyPlaylistService
         $this->spotify->delete($connection, "/playlists/{$spotifyId}/items", [
             'items' => array_values($items),
         ]);
+        $this->applyLocalRemove($user, $spotifyId, $items);
         SyncPlaylistItemsJob::dispatch($user->id, $spotifyId);
     }
 
@@ -146,5 +166,98 @@ class SpotifyPlaylistService
             'uris' => array_values($uris),
         ]);
         SyncPlaylistItemsJob::dispatch($user->id, $spotifyId);
+    }
+
+    /**
+     * Keep local membership accurate until the async items sync finishes.
+     *
+     * @param  list<string>  $uris
+     */
+    private function applyLocalAdd(User $user, string $spotifyId, array $uris): void
+    {
+        $playlist = SpotifyPlaylist::query()
+            ->where('user_id', $user->id)
+            ->where('spotify_id', $spotifyId)
+            ->first();
+
+        if ($playlist === null || $uris === []) {
+            return;
+        }
+
+        $tracks = SpotifyTrack::query()
+            ->whereIn('uri', $uris)
+            ->get()
+            ->keyBy('uri');
+
+        $nextPosition = ((int) $playlist->items()->max('position')) + 1;
+
+        foreach ($uris as $uri) {
+            $track = $tracks->get($uri);
+            if ($track === null) {
+                continue;
+            }
+
+            $exists = SpotifyPlaylistItem::query()
+                ->where('spotify_playlist_id', $playlist->id)
+                ->where('spotify_track_id', $track->id)
+                ->exists();
+
+            if ($exists) {
+                continue;
+            }
+
+            SpotifyPlaylistItem::query()->create([
+                'spotify_playlist_id' => $playlist->id,
+                'spotify_track_id' => $track->id,
+                'position' => $nextPosition,
+                'added_at' => now(),
+            ]);
+            $nextPosition++;
+        }
+
+        $playlist->forceFill([
+            'item_count' => $playlist->items()->count(),
+        ])->save();
+    }
+
+    /**
+     * @param  list<array{uri: string, positions?: list<int>}>  $items
+     */
+    private function applyLocalRemove(User $user, string $spotifyId, array $items): void
+    {
+        $playlist = SpotifyPlaylist::query()
+            ->where('user_id', $user->id)
+            ->where('spotify_id', $spotifyId)
+            ->first();
+
+        if ($playlist === null || $items === []) {
+            return;
+        }
+
+        $uris = array_values(array_filter(array_map(
+            static fn (array $item): ?string => isset($item['uri']) && is_string($item['uri']) ? $item['uri'] : null,
+            $items,
+        )));
+
+        if ($uris === []) {
+            return;
+        }
+
+        $trackIds = SpotifyTrack::query()
+            ->whereIn('uri', $uris)
+            ->pluck('id');
+
+        if ($trackIds->isEmpty()) {
+            return;
+        }
+
+        SpotifyPlaylistItem::query()
+            ->where('spotify_playlist_id', $playlist->id)
+            ->whereIn('spotify_track_id', $trackIds)
+            ->delete();
+
+        $playlist->forceFill([
+            'item_count' => $playlist->items()->count(),
+        ])->save();
     }
 }

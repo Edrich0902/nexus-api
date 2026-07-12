@@ -41,6 +41,21 @@ php artisan queue:work --tries=3
 php artisan test
 ```
 
+## Telescope (local debugging)
+
+Telescope records requests, exceptions, queries, and jobs so intermittent issues (e.g. cache / rate-limit errors on Spotify player polls) can be inspected after the fact.
+
+```bash
+# Inside workspace container
+composer require laravel/telescope --dev
+php artisan telescope:install
+php artisan migrate
+```
+
+- UI: [http://api.nexus.test/telescope](http://api.nexus.test/telescope) (open in `local`; non-local uses the `viewTelescope` gate)
+- Toggle: `TELESCOPE_ENABLED=true|false` in `.env`
+- Prefer `CACHE_STORE=file` (or redis) — database cache can deadlock under concurrent RateLimiter hits from player polling
+
 ## Queue Worker
 
 The API uses the `database` queue driver. After adding jobs, keep a worker running:
@@ -81,7 +96,7 @@ Copy `.env.example` to `.env` and set:
 | `QUEUE_CONNECTION` | `database` |
 | `CORS_ALLOWED_ORIGINS` | `http://nexus.test,http://localhost:5173,https://nexus.barforge.co.za` |
 | `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | From Spotify Developer Dashboard |
-| `SPOTIFY_REDIRECT_URI` | `http://127.0.0.1/spotify/callback` (must match dashboard exactly) |
+| `SPOTIFY_REDIRECT_URI` | `http://127.0.0.1:80/spotify/callback` (must match dashboard exactly; Spotify requires an explicit loopback port) |
 | `SPOTIFY_FRONTEND_REDIRECT` | `http://nexus.test/spotify` |
 
 Generate an app key if missing:
@@ -116,9 +131,10 @@ php artisan spotify:sync --type=playlists
 
 ## Spotify OAuth (local)
 
-1. Dashboard redirect URI: `http://127.0.0.1/spotify/callback` (not `api.nexus.test` — Spotify requires HTTPS for custom hosts).
+1. Dashboard redirect URI: `http://127.0.0.1:80/spotify/callback` (not `api.nexus.test` — Spotify requires HTTPS for custom hosts; loopback must include an explicit port).
 2. Confirm loopback hits the API: `curl -sI http://127.0.0.1/` → Laravel / Nexus_Api.
 3. Authenticated `GET /api/v1/spotify/connect` → open `url` → Spotify redirects to loopback callback → browser sent to `SPOTIFY_FRONTEND_REDIRECT`.
+4. After scope additions (e.g. `user-follow-read`), status returns `needs_reauth` / `missing_scopes` until the user reconnects once.
 
 ## Adding a New Module
 

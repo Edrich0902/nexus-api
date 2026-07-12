@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // API-only app: never redirect guests to a named web login route.
+        // Unauthenticated API requests must return 401 JSON, not 500 from route('login').
+        $middleware->redirectGuestsTo(fn () => null);
+
         $middleware->throttleApi();
         $middleware->trustProxies(at: '*');
     })

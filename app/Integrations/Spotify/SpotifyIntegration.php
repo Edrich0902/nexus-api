@@ -31,6 +31,7 @@ class SpotifyIntegration extends BaseIntegration
             'playlist-modify-private',
             'user-library-read',
             'user-library-modify',
+            'user-follow-read',
         ];
     }
 

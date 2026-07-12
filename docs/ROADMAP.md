@@ -43,7 +43,15 @@ Infrastructure and application skeleton.
 - [x] Library save/remove + playlist CRUD/items (post–Feb 2026 Spotify shapes)
 - [x] Taste + suggestions (Nexus heuristics from tops/recent; no audio-features API)
 
-Local redirect URI: `http://127.0.0.1/spotify/callback` (exact match in Spotify dashboard + `.env`).
+### Milestone 1.1 — Catalog / library / search proxies
+
+- [x] `GET /api/v1/spotify/search` (limit ≤10) — throttle `spotify-search` 30/min
+- [x] Artist/album browse proxies + 10m cache — throttle `spotify-catalog` 60/min; degrade to local sync when Spotify returns 403
+- [x] Library pages: `/library/tracks`, `/library/albums`, `/library/artists` — throttle `spotify-library` 40/min
+- [x] Scope `user-follow-read`; status reports `missing_scopes` / `needs_reauth` when reconnect required
+- [x] Taste v2: on-repeat, time-of-day skew, ranked suggestions (DB-only)
+
+Local redirect URI: `http://127.0.0.1:80/spotify/callback` (exact match in Spotify dashboard + `.env`).
 
 ---
 

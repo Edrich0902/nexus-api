@@ -53,6 +53,7 @@ class SpotifyConnectionService
      *     status: string|null,
      *     external_user_id: string|null,
      *     scopes: list<string>,
+     *     missing_scopes: list<string>,
      *     connected_at: string|null,
      *     last_synced_at: string|null,
      *     needs_reauth: bool
@@ -69,21 +70,30 @@ class SpotifyConnectionService
                 'status' => null,
                 'external_user_id' => null,
                 'scopes' => [],
+                'missing_scopes' => [],
                 'connected_at' => null,
                 'last_synced_at' => null,
                 'needs_reauth' => false,
             ];
         }
 
+        $scopes = $connection->scopeList();
+        $required = $this->spotify->scopes();
+        $missingScopes = array_values(array_diff($required, $scopes));
+        $needsReauth = $connection->needsReauth() || $missingScopes !== [];
+
         return [
-            'connected' => $connection->isActive() || $connection->needsReauth(),
+            'connected' => $connection->isActive() || $needsReauth,
             'provider' => $connection->provider,
-            'status' => $connection->status,
+            'status' => $needsReauth && ! $connection->needsReauth()
+                ? IntegrationConnection::STATUS_NEEDS_REAUTH
+                : $connection->status,
             'external_user_id' => $connection->external_user_id,
-            'scopes' => $connection->scopeList(),
+            'scopes' => $scopes,
+            'missing_scopes' => $missingScopes,
             'connected_at' => $connection->connected_at?->toIso8601String(),
             'last_synced_at' => $connection->last_synced_at?->toIso8601String(),
-            'needs_reauth' => $connection->needsReauth(),
+            'needs_reauth' => $needsReauth,
         ];
     }
 

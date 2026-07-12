@@ -240,17 +240,34 @@ abstract class BaseIntegration implements IntegrationInterface
 
         return match ($method) {
             'GET' => $client->get($relativePath, $query),
-            'DELETE' => $json === null
-                ? $client->delete($relativePath, $query)
-                : $client->withQueryParameters($query)->delete($relativePath, $json),
-            'PUT' => $json === null
-                ? $client->withQueryParameters($query)->put($relativePath)
-                : $client->withQueryParameters($query)->put($relativePath, $json),
-            'POST' => $json === null
-                ? $client->withQueryParameters($query)->post($relativePath)
-                : $client->withQueryParameters($query)->post($relativePath, $json),
+            'DELETE' => $this->sendJson($client->withQueryParameters($query), 'DELETE', $relativePath, $json),
+            'PUT' => $this->sendJson($client->withQueryParameters($query), 'PUT', $relativePath, $json),
+            'POST' => $this->sendJson($client->withQueryParameters($query), 'POST', $relativePath, $json),
             default => $client->send($method, $relativePath, $options),
         };
+    }
+
+    /**
+     * Spotify rejects Laravel's asJson() default body "[]" as malformed JSON.
+     * Empty player control bodies must be "{}" (object), never a JSON array.
+     *
+     * @param  array<string, mixed>|null  $json
+     */
+    private function sendJson(
+        PendingRequest $client,
+        string $method,
+        string $relativePath,
+        ?array $json,
+    ): Response {
+        if ($json === null) {
+            return $client
+                ->withBody('{}', 'application/json')
+                ->send($method, $relativePath);
+        }
+
+        return $client->asJson()->send($method, $relativePath, [
+            'json' => $json,
+        ]);
     }
 
     public function disconnect(User $user): void
@@ -357,7 +374,6 @@ abstract class BaseIntegration implements IntegrationInterface
         return Http::baseUrl($this->apiBaseUrl())
             ->withToken($accessToken)
             ->acceptJson()
-            ->asJson()
             ->timeout(20);
     }
 }

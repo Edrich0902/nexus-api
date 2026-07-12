@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Spotify\SpotifyBrowseController;
 use App\Http\Controllers\Api\V1\Spotify\SpotifyConnectionController;
 use App\Http\Controllers\Api\V1\Spotify\SpotifyLibraryController;
 use App\Http\Controllers\Api\V1\Spotify\SpotifyListeningController;
 use App\Http\Controllers\Api\V1\Spotify\SpotifyPlayerController;
 use App\Http\Controllers\Api\V1\Spotify\SpotifyPlaylistController;
+use App\Http\Controllers\Api\V1\Spotify\SpotifySearchController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('spotify')->group(function (): void {
@@ -31,11 +33,27 @@ Route::prefix('spotify')->group(function (): void {
             Route::post('/player/queue', [SpotifyPlayerController::class, 'addQueueItem']);
         });
 
-        Route::put('/library', [SpotifyLibraryController::class, 'save']);
-        Route::delete('/library', [SpotifyLibraryController::class, 'remove']);
-        Route::get('/library/contains', [SpotifyLibraryController::class, 'contains']);
+        Route::get('/search', SpotifySearchController::class)
+            ->middleware('throttle:spotify-search');
+
+        Route::middleware('throttle:spotify-catalog')->group(function (): void {
+            Route::get('/artists/{artistId}', [SpotifyBrowseController::class, 'artist']);
+            Route::get('/artists/{artistId}/top-tracks', [SpotifyBrowseController::class, 'artistTopTracks']);
+            Route::get('/artists/{artistId}/albums', [SpotifyBrowseController::class, 'artistAlbums']);
+            Route::get('/albums/{albumId}', [SpotifyBrowseController::class, 'album']);
+        });
+
+        Route::middleware('throttle:spotify-library')->group(function (): void {
+            Route::put('/library', [SpotifyLibraryController::class, 'save']);
+            Route::delete('/library', [SpotifyLibraryController::class, 'remove']);
+            Route::get('/library/contains', [SpotifyLibraryController::class, 'contains']);
+            Route::get('/library/tracks', [SpotifyLibraryController::class, 'tracks']);
+            Route::get('/library/albums', [SpotifyLibraryController::class, 'albums']);
+            Route::get('/library/artists', [SpotifyLibraryController::class, 'artists']);
+        });
 
         Route::get('/playlists', [SpotifyPlaylistController::class, 'index']);
+        Route::get('/playlists/containing', [SpotifyPlaylistController::class, 'containing']);
         Route::post('/playlists', [SpotifyPlaylistController::class, 'store']);
         Route::get('/playlists/{playlistId}', [SpotifyPlaylistController::class, 'show']);
         Route::put('/playlists/{playlistId}', [SpotifyPlaylistController::class, 'update']);

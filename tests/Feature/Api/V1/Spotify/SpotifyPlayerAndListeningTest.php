@@ -26,7 +26,7 @@ class SpotifyPlayerAndListeningTest extends TestCase
         config([
             'services.spotify.client_id' => 'test-client-id',
             'services.spotify.client_secret' => 'test-client-secret',
-            'services.spotify.redirect' => 'http://127.0.0.1/spotify/callback',
+            'services.spotify.redirect' => 'http://127.0.0.1:80/spotify/callback',
         ]);
 
         $this->user = User::factory()->create();
@@ -72,6 +72,54 @@ class SpotifyPlayerAndListeningTest extends TestCase
             return $request->url() === 'https://api.spotify.com/v1/me/player/play'
                 && $request->method() === 'PUT'
                 && $request['context_uri'] === 'spotify:playlist:abc';
+        });
+    }
+
+    public function test_player_play_with_uris_sends_json_object(): void
+    {
+        Http::fake([
+            'api.spotify.com/v1/me/player/play*' => Http::response(null, 204),
+        ]);
+
+        $this->putJson('/api/v1/spotify/player/play', [
+            'uris' => ['spotify:track:abc123'],
+        ])->assertNoContent();
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.spotify.com/v1/me/player/play'
+                && $request->method() === 'PUT'
+                && $request->body() === '{"uris":["spotify:track:abc123"]}'
+                && $request['uris'] === ['spotify:track:abc123'];
+        });
+    }
+
+    public function test_player_play_resume_sends_empty_json_object_not_array(): void
+    {
+        Http::fake([
+            'api.spotify.com/v1/me/player/play*' => Http::response(null, 204),
+        ]);
+
+        $this->putJson('/api/v1/spotify/player/play', [])->assertNoContent();
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.spotify.com/v1/me/player/play'
+                && $request->method() === 'PUT'
+                && $request->body() === '{}';
+        });
+    }
+
+    public function test_player_pause_sends_empty_json_object_not_array(): void
+    {
+        Http::fake([
+            'api.spotify.com/v1/me/player/pause*' => Http::response(null, 204),
+        ]);
+
+        $this->putJson('/api/v1/spotify/player/pause')->assertNoContent();
+
+        Http::assertSent(function ($request) {
+            return str_starts_with($request->url(), 'https://api.spotify.com/v1/me/player/pause')
+                && $request->method() === 'PUT'
+                && $request->body() === '{}';
         });
     }
 
