@@ -22,8 +22,10 @@ Infrastructure and application skeleton.
 
 **Still open before feature work**
 
-- [ ] Authentication endpoints (login, token issue/revoke) — **first concrete work when building features**
-- [ ] Shared API resource / response conventions
+- [x] Authentication endpoints (login, token issue/revoke, me, refresh, sessions)
+- [x] Shared API resource / response conventions (Resources, no `data` wrapper)
+- [x] Auth hardening (rate limits, CORS allowlist, HTTPS outside local)
+- [ ] Change password / password reset (deferred until email integration)
 - [ ] Queue / schedule worker usage documented and ready for sync jobs
 
 ---

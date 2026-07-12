@@ -73,11 +73,13 @@ Copy `.env.example` to `.env` and set:
 | Variable | Local value |
 |----------|-------------|
 | `APP_URL` | `http://api.nexus.test` |
+| `APP_FORCE_HTTPS` | `false` (set `true` or use `staging`/`production` env to force HTTPS) |
 | `DB_HOST` | `mysql` |
 | `DB_DATABASE` | `nexus_db` |
 | `DB_USERNAME` | `root` |
 | `DB_PASSWORD` | `root` |
 | `QUEUE_CONNECTION` | `database` |
+| `CORS_ALLOWED_ORIGINS` | `http://nexus.test,http://localhost:5173,https://nexus.barforge.co.za` |
 
 Generate an app key if missing:
 
@@ -102,10 +104,45 @@ Before scaffolding: confirm the milestone is active and a short kickoff note exi
 # Health check
 curl http://api.nexus.test/up
 
-# Authenticated route (requires Sanctum token)
-curl -H "Authorization: Bearer {token}" http://api.nexus.test/api/user
+# Login (returns bearer token, expires_at, user) — 4 hour token
+curl -X POST http://api.nexus.test/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"email":"edrich@nexus.test","password":"password"}'
+
+# Login with remember me — 24 hour token
+curl -X POST http://api.nexus.test/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"email":"edrich@nexus.test","password":"password","remember":true}'
+
+# Current user (requires Sanctum token)
+curl -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json" \
+  http://api.nexus.test/api/v1/auth/me
+
+# Refresh / rotate token (must still be valid)
+curl -X POST http://api.nexus.test/api/v1/auth/refresh \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+
+# List active sessions / devices
+curl -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json" \
+  http://api.nexus.test/api/v1/auth/sessions
+
+# Revoke one session by id
+curl -X DELETE http://api.nexus.test/api/v1/auth/sessions/{id} \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
+
+# Logout current token
+curl -X POST http://api.nexus.test/api/v1/auth/logout \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
 ```
 
+Seed a local user first (`php artisan db:seed` inside the workspace container) if the database is empty.
 ## Logs
 
 - Laravel log: `storage/logs/laravel.log`

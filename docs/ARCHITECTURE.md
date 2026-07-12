@@ -31,15 +31,25 @@ Each module is a vertical slice: migrations, models, services, jobs, and API rou
 
 | Module | Prefix (planned) | Role |
 |--------|------------------|------|
-| Auth / users | `/api/*` auth routes | Sanctum login, tokens |
-| Spotify | `/api/spotify/*` | Listening sync & analytics |
-| GitHub | `/api/github/*` | Developer activity / context |
-| Cellar | `/api/cellar/*` | Wine collection |
-| Library | `/api/library/*` | Book collection |
-| Kitchen | `/api/kitchen/*` | Recipes |
-| Media vaults | `/api/media/*` (TBD) | Personal media libraries |
+| Auth / users | `/api/v1/auth/*` | Sanctum login, tokens, current user |
+| Spotify | `/api/v1/spotify/*` | Listening sync & analytics |
+| GitHub | `/api/v1/github/*` | Developer activity / context |
+| Cellar | `/api/v1/cellar/*` | Wine collection |
+| Library | `/api/v1/library/*` | Book collection |
+| Kitchen | `/api/v1/kitchen/*` | Recipes |
+| Media vaults | `/api/v1/media/*` (TBD) | Personal media libraries |
 | Social | TBD | Optional (e.g. Instagram) |
-| Sports / F1 | `/api/sports/*`, `/api/f1/*` | Schedules, standings, ticker |
+| Sports / F1 | `/api/v1/sports/*`, `/api/v1/f1/*` | Schedules, standings, ticker |
+
+### Route & code layout
+
+URI versioning (`/api/v1/...`). Routes are modular:
+
+- `routes/api.php` — loads version groups only
+- `routes/api/v1/api.php` — requires module route files
+- `routes/api/v1/{module}.php` — maps paths to controllers
+
+HTTP flow: **Form Request → Controller → Service → API Resource**. Controllers stay thin; business logic lives in `app/Services/{Module}/`.
 
 ### Collections note (Cellar & Library)
 
@@ -49,13 +59,57 @@ CRUD on the web is the first surface. Schema and endpoints should leave room for
 
 Third-party modules (Spotify, GitHub, sports, optional social) typically share a pattern: OAuth or API keys → encrypted credentials → queued sync → normalized tables → read APIs for clients.
 
+## Shared API resource / response conventions
+
+Auth and future modules return JSON via API Resources (`App\Http\Resources\Api\V1\...`) without a top-level `data` wrapper. Validation and auth errors use Laravel’s default JSON error shape (see Error handling below).
+
 ## Authentication
 
 Laravel Sanctum bearer tokens:
 
 - Web SPA and mobile use the same token flow
-- Module routes under `/api/*` require `auth:sanctum` unless explicitly public (e.g. OAuth callbacks)
-- Auth is the first concrete capability to finish before private feature modules
+- Module routes under `/api/v1/*` require `auth:sanctum` unless explicitly public (e.g. login, OAuth callbacks)
+- Auth endpoints: `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/logout-all`, `GET /api/v1/auth/me`
+- No public registration in v1 — users are seeded / created via artisan for this personal hub
+
+### Token lifetimes
+
+Sanctum global `expiration` stays `null`; each token sets its own `expires_at`:
+
+| Login | Ability | Lifetime |
+|-------|---------|----------|
+| Default | `*` | 4 hours |
+| `remember: true` | `*`, `remember` | 24 hours (hard ceiling) |
+
+`POST /api/v1/auth/refresh` rotates the current token (revoke old → issue new) and preserves the remember-me lifetime class. Login and refresh responses include `expires_at`. Clients should refresh while the token is still valid (e.g. on app load); idle past expiry requires re-login.
+
+### Sessions / devices
+
+- `GET /api/v1/auth/sessions` — list the user’s tokens with device metadata. Never returns token secrets.
+- `DELETE /api/v1/auth/sessions/{id}` — revoke one device/session owned by the user.
+
+Each session includes:
+
+| Field | Meaning |
+|-------|---------|
+| `name` / `device.name` | Client-supplied label (`device_name` on login, default `nexus-web`) |
+| `device.ip_address` | IP at login/refresh |
+| `device.user_agent` | Browser/app user agent at login/refresh |
+| `remember`, `expires_at`, `last_used_at`, `is_current` | Session state for the Vue devices UI |
+
+### Rate limiting & CORS
+
+- All `/api/*` routes: 60 requests / minute per user or IP
+- `POST /api/v1/auth/login`: 5 requests / minute per IP + email
+- CORS allowlist via `CORS_ALLOWED_ORIGINS` (local `nexus.test`, Vite `localhost:5173`, production `https://nexus.barforge.co.za`)
+
+### HTTPS
+
+Outside local: `URL::forceScheme('https')` when `APP_ENV` is `production`/`staging`, or when `APP_FORCE_HTTPS=true`. Proxies are trusted so `X-Forwarded-Proto` works behind nginx.
+
+### Deferred (needs email)
+
+Change password and password reset are deferred until mail/notifications are integrated.
 
 ## Background processing
 
