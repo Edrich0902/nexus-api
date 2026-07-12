@@ -75,7 +75,29 @@ Spotify specifically:
 | Recent / tops / playlists / taste | Synced to `spotify_*` tables; served from DB |
 | Library + playlist mutations | Write-through to Spotify, then re-sync |
 
-Integration code lives under `app/Integrations/` (`BaseIntegration`, `Spotify/SpotifyIntegration`). Domain orchestration stays in `app/Services/Spotify/`.
+Integration code lives under `app/Integrations/` (`BaseIntegration`, `Spotify/SpotifyIntegration`, `Github/GithubIntegration`). Domain orchestration stays in `app/Services/Spotify/` and `app/Services/Github/`.
+
+GitHub specifically:
+
+| Concern | Strategy |
+|---------|----------|
+| OAuth callback (local) | `http://127.0.0.1:80/github/callback` (same loopback pattern as Spotify) |
+| OAuth callback (prod) | `https://<api-host>/github/callback` |
+| Auth type | GitHub App user access tokens (expiring + refresh) |
+| Tokens | Encrypted on `integration_connections` (`provider=github`) |
+| Profile | Live `GET /api/v1/github/me` |
+| Repos | Synced to `github_repos`; `GET /api/v1/github/repos` |
+| PRs / diffs / commits / branches | Live proxy under `/api/v1/github/repos/{owner}/{repo}/…` |
+| Cross-repo PR inbox | Live `GET /api/v1/github/pulls` (search) |
+| Create / merge PR | Write-through live proxy (`github-write` throttle) |
+
+### Rate limiting (GitHub)
+
+- `github-oauth-callback` 20/min IP
+- `github-sync` 6/min
+- `github-proxy` 60/min
+- `github-search` 20/min
+- `github-write` 20/min
 
 ## Shared API resource / response conventions
 

@@ -81,7 +81,12 @@ At kickoff: model the domain lightly, define CRUD + any “quick-log” endpoint
 
 ### GitHub
 
-Activity, repos, or profile surfaces useful on a personal hub. Spec OAuth/App permissions and which data is worth storing locally when the milestone starts.
+**Done (M3)**
+
+- [x] GitHub App OAuth connect / callback / disconnect / status / sync
+- [x] Account profile (`GET /me`) + repo sync (`github_repos`)
+- [x] Live PR inbox, repo PRs, commits, branches
+- [x] PR detail + file diffs, create PR, merge PR
 
 ### Instagram (optional / later)
 

@@ -24,7 +24,9 @@ class IntegrationException extends RuntimeException
     {
         $detail = is_string($payload['error']['message'] ?? null)
             ? $payload['error']['message']
-            : (is_string($payload['error_description'] ?? null) ? $payload['error_description'] : 'Request failed.');
+            : (is_string($payload['message'] ?? null)
+                ? $payload['message']
+                : (is_string($payload['error_description'] ?? null) ? $payload['error_description'] : 'Request failed.'));
 
         return new self("[{$provider}] {$detail}", $status, $payload);
     }

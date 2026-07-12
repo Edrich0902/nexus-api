@@ -98,6 +98,10 @@ Copy `.env.example` to `.env` and set:
 | `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | From Spotify Developer Dashboard |
 | `SPOTIFY_REDIRECT_URI` | `http://127.0.0.1:80/spotify/callback` (must match dashboard exactly; Spotify requires an explicit loopback port) |
 | `SPOTIFY_FRONTEND_REDIRECT` | `http://nexus.test/spotify` |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | From GitHub App settings |
+| `GITHUB_APP_ID` / `GITHUB_PRIVATE_KEY` | App ID + PEM (quoted multiline in `.env`) |
+| `GITHUB_REDIRECT_URI` | `http://127.0.0.1:80/github/callback` |
+| `GITHUB_FRONTEND_REDIRECT` | `http://nexus.test/github` |
 
 Generate an app key if missing:
 
@@ -135,6 +139,14 @@ php artisan spotify:sync --type=playlists
 2. Confirm loopback hits the API: `curl -sI http://127.0.0.1/` → Laravel / Nexus_Api.
 3. Authenticated `GET /api/v1/spotify/connect` → open `url` → Spotify redirects to loopback callback → browser sent to `SPOTIFY_FRONTEND_REDIRECT`.
 4. After scope additions (e.g. `user-follow-read`), status returns `needs_reauth` / `missing_scopes` until the user reconnects once.
+
+## GitHub OAuth (local)
+
+1. Register a **GitHub App** (not OAuth App). Callback: `http://127.0.0.1:80/github/callback` (exact match in app settings + `.env`).
+2. Permissions: Metadata (read), Contents (read), Pull requests (read & write). Enable expiring user tokens. Install on your account.
+3. Set `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_ID`, `GITHUB_PRIVATE_KEY`, `GITHUB_REDIRECT_URI`, `GITHUB_FRONTEND_REDIRECT` in `.env`.
+4. Authenticated `GET /api/v1/github/connect` → open `url` → GitHub redirects to loopback callback → browser sent to `GITHUB_FRONTEND_REDIRECT`.
+5. Keep a queue worker running so `SyncGithubReposJob` can populate `github_repos` after connect/sync.
 
 ## Adding a New Module
 
