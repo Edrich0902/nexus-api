@@ -32,7 +32,7 @@ Each module is a vertical slice: migrations, models, services, jobs, and API rou
 | Module | Prefix (planned) | Role |
 |--------|------------------|------|
 | Auth / users | `/api/v1/auth/*` | Sanctum login, tokens, current user |
-| Spotify | `/api/v1/spotify/*` | Listening sync & analytics |
+| Spotify | `/api/v1/spotify/*` | Connect remote + listening sync & live player proxy |
 | GitHub | `/api/v1/github/*` | Developer activity / context |
 | Cellar | `/api/v1/cellar/*` | Wine collection |
 | Library | `/api/v1/library/*` | Book collection |
@@ -57,7 +57,22 @@ CRUD on the web is the first surface. Schema and endpoints should leave room for
 
 ### Integrations note
 
-Third-party modules (Spotify, GitHub, sports, optional social) typically share a pattern: OAuth or API keys → encrypted credentials → queued sync → normalized tables → read APIs for clients.
+Third-party modules (Spotify, GitHub, sports, optional social) share:
+
+`BaseIntegration` (OAuth + token refresh + authenticated HTTP) → encrypted `integration_connections` → queued sync into module tables → read APIs; **live proxy** for realtime control surfaces (e.g. Spotify player).
+
+Spotify specifically:
+
+| Concern | Strategy |
+|---------|----------|
+| OAuth callback (local) | `http://127.0.0.1/spotify/callback` (Spotify requires loopback for non-HTTPS) |
+| OAuth callback (prod) | `https://<api-host>/spotify/callback` |
+| Tokens | Encrypted on `integration_connections` |
+| Player / devices / queue | Live proxy via `/api/v1/spotify/player*` |
+| Recent / tops / playlists / taste | Synced to `spotify_*` tables; served from DB |
+| Library + playlist mutations | Write-through to Spotify, then re-sync |
+
+Integration code lives under `app/Integrations/` (`BaseIntegration`, `Spotify/SpotifyIntegration`). Domain orchestration stays in `app/Services/Spotify/`.
 
 ## Shared API resource / response conventions
 
@@ -145,13 +160,14 @@ Queue driver today: `database`. Redis later if Laradock Redis is enabled.
 }
 ```
 
-## Environment variables (planned, per milestone)
+## Environment variables
 
 ```dotenv
-# Spotify
+# Spotify — local redirect MUST be loopback (Spotify blocks http://api.nexus.test)
 SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
-SPOTIFY_REDIRECT_URI=http://api.nexus.test/spotify/callback
+SPOTIFY_REDIRECT_URI=http://127.0.0.1/spotify/callback
+SPOTIFY_FRONTEND_REDIRECT=http://nexus.test/spotify
 
 # GitHub (when prioritized)
 GITHUB_CLIENT_ID=
@@ -161,5 +177,3 @@ GITHUB_CLIENT_SECRET=
 F1_API_KEY=
 SPORTS_API_KEY=
 ```
-
-Exact variable sets are defined when each integration is specified.

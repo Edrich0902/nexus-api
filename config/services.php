@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'spotify' => [
+        'client_id' => env('SPOTIFY_CLIENT_ID'),
+        'client_secret' => env('SPOTIFY_CLIENT_SECRET'),
+        'redirect' => env('SPOTIFY_REDIRECT_URI', 'http://127.0.0.1/spotify/callback'),
+        'frontend_redirect' => env('SPOTIFY_FRONTEND_REDIRECT', 'http://nexus.test/spotify'),
+    ],
+
 ];

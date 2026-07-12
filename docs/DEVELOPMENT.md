@@ -80,6 +80,9 @@ Copy `.env.example` to `.env` and set:
 | `DB_PASSWORD` | `root` |
 | `QUEUE_CONNECTION` | `database` |
 | `CORS_ALLOWED_ORIGINS` | `http://nexus.test,http://localhost:5173,https://nexus.barforge.co.za` |
+| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` | From Spotify Developer Dashboard |
+| `SPOTIFY_REDIRECT_URI` | `http://127.0.0.1/spotify/callback` (must match dashboard exactly) |
+| `SPOTIFY_FRONTEND_REDIRECT` | `http://nexus.test/spotify` |
 
 Generate an app key if missing:
 
@@ -87,16 +90,47 @@ Generate an app key if missing:
 php artisan key:generate
 ```
 
+## Queue Worker
+
+Spotify sync jobs use the `database` queue. Keep a worker running when testing connect/sync:
+
+```bash
+# Inside workspace container
+php artisan queue:work --tries=3
+```
+
+Scheduler (recent every 15m, tops daily, playlists every 3h) needs:
+
+```bash
+php artisan schedule:work
+# or cron: * * * * * php /var/www/nexus-api/artisan schedule:run
+```
+
+Manual sync for all connected users:
+
+```bash
+php artisan spotify:sync --type=recent
+php artisan spotify:sync --type=tops
+php artisan spotify:sync --type=playlists
+```
+
+## Spotify OAuth (local)
+
+1. Dashboard redirect URI: `http://127.0.0.1/spotify/callback` (not `api.nexus.test` — Spotify requires HTTPS for custom hosts).
+2. Confirm loopback hits the API: `curl -sI http://127.0.0.1/` → Laravel / Nexus_Api.
+3. Authenticated `GET /api/v1/spotify/connect` → open `url` → Spotify redirects to loopback callback → browser sent to `SPOTIFY_FRONTEND_REDIRECT`.
+
 ## Adding a New Module
 
 Before scaffolding: confirm the milestone is active and a short kickoff note exists (see [VISION.md](VISION.md) / [ROADMAP.md](ROADMAP.md)). Then:
 
 1. Create migrations: `php artisan make:migration create_{module}_{table}_table`
 2. Create models: `php artisan make:model Models/{Module}/{Entity}`
-3. Create service class in `app/Services/{Module}/`
-4. Create API controller: `php artisan make:controller Api/{Module}/{Entity}Controller`
-5. Register routes in `routes/api.php` under a prefix (e.g. `Route::prefix('spotify')`)
-6. Add queued jobs for any external sync: `php artisan make:job {Module}/Sync{Resource}`
+3. For OAuth/API integrations: extend `app/Integrations/BaseIntegration` (see `SpotifyIntegration`)
+4. Create service class in `app/Services/{Module}/`
+5. Create API controller under `App\Http\Controllers\Api\V1\...`
+6. Register routes in `routes/api/v1/{module}.php` and `require` from `routes/api/v1/api.php`
+7. Add queued jobs for external sync under `app/Jobs/{Module}/`
 
 ## API Testing
 

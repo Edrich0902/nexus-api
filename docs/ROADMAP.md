@@ -26,22 +26,24 @@ Infrastructure and application skeleton.
 - [x] Shared API resource / response conventions (Resources, no `data` wrapper)
 - [x] Auth hardening (rate limits, CORS allowlist, HTTPS outside local)
 - [ ] Change password / password reset (deferred until email integration)
-- [ ] Queue / schedule worker usage documented and ready for sync jobs
+- [x] Queue / schedule worker usage documented and ready for sync jobs
 
 ---
 
 ## Milestone 1 — Spotify
 
-**Intent:** Connect a Spotify account, ingest listening-related data, expose it for the dashboard.
+**Intent:** Connect Spotify, remote-control playback via Connect, sync listening aggregates, expose APIs for web/mobile.
 
-At kickoff: confirm Spotify API scopes, OAuth flow, rate limits, and what is worth caching vs fetching live. Spec tokens, tables, jobs, and routes then.
+**Implemented (API):**
 
-Rough expectations (not a checklist):
+- [x] OAuth connect / callback (`GET /api/v1/spotify/connect`, web `GET /spotify/callback`) / disconnect / status / sync
+- [x] Encrypted token storage + refresh (`BaseIntegration` + `integration_connections`)
+- [x] Queued sync: recently played, top items, playlists; scheduled via `spotify:sync` / `Schedule`
+- [x] Live player proxy (devices, play/pause/skip, queue, transfer, …)
+- [x] Library save/remove + playlist CRUD/items (post–Feb 2026 Spotify shapes)
+- [x] Taste + suggestions (Nexus heuristics from tops/recent; no audio-features API)
 
-- OAuth connect / callback / disconnect
-- Token storage and refresh
-- Sync of recently played / top items (or equivalent useful subsets)
-- Status + read APIs for the web module
+Local redirect URI: `http://127.0.0.1/spotify/callback` (exact match in Spotify dashboard + `.env`).
 
 ---
 
