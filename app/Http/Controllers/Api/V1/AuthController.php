@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Auth\LoginRequest;
+use App\Http\Requests\Api\V1\Auth\UpdateProfileRequest;
 use App\Http\Resources\Api\V1\AccessTokenResource;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Services\Auth\AuthService;
@@ -48,6 +49,16 @@ class AuthController extends Controller
     public function me(Request $request): UserResource
     {
         return new UserResource($request->user());
+    }
+
+    public function updateProfile(UpdateProfileRequest $request): UserResource
+    {
+        $user = $this->authService->updateProfile(
+            user: $request->user(),
+            name: $request->validated('name'),
+        );
+
+        return new UserResource($user);
     }
 
     public function sessions(Request $request): AnonymousResourceCollection

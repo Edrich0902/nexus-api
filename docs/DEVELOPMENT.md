@@ -121,6 +121,13 @@ curl -H "Authorization: Bearer {token}" \
   -H "Accept: application/json" \
   http://api.nexus.test/api/v1/auth/me
 
+# Update profile name
+curl -X PATCH http://api.nexus.test/api/v1/auth/profile \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"name":"Edrich"}'
+
 # Refresh / rotate token (must still be valid)
 curl -X POST http://api.nexus.test/api/v1/auth/refresh \
   -H "Authorization: Bearer {token}" \

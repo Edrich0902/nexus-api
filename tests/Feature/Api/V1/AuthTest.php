@@ -129,6 +129,46 @@ class AuthTest extends TestCase
         $this->getJson('/api/v1/auth/me')->assertUnauthorized();
     }
 
+    public function test_update_profile_updates_name(): void
+    {
+        $user = User::factory()->create([
+            'name' => 'Old Name',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->patchJson('/api/v1/auth/profile', [
+            'name' => 'Edrich Updated',
+        ])
+            ->assertOk()
+            ->assertJsonPath('id', $user->id)
+            ->assertJsonPath('name', 'Edrich Updated')
+            ->assertJsonPath('email', $user->email);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'name' => 'Edrich Updated',
+        ]);
+    }
+
+    public function test_update_profile_requires_name(): void
+    {
+        $user = User::factory()->create();
+
+        Sanctum::actingAs($user);
+
+        $this->patchJson('/api/v1/auth/profile', [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['name']);
+    }
+
+    public function test_update_profile_requires_authentication(): void
+    {
+        $this->patchJson('/api/v1/auth/profile', [
+            'name' => 'Nope',
+        ])->assertUnauthorized();
+    }
+
     public function test_refresh_rotates_token_and_preserves_remember_lifetime(): void
     {
         Carbon::setTestNow('2026-07-12 12:00:00');

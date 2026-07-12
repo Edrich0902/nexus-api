@@ -9,6 +9,7 @@ Route::prefix('auth')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
+        Route::patch('/profile', [AuthController::class, 'updateProfile']);
         Route::post('/refresh', [AuthController::class, 'refresh']);
         Route::get('/sessions', [AuthController::class, 'sessions']);
         Route::delete('/sessions/{tokenId}', [AuthController::class, 'revokeSession'])

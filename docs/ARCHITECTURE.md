@@ -69,7 +69,7 @@ Laravel Sanctum bearer tokens:
 
 - Web SPA and mobile use the same token flow
 - Module routes under `/api/v1/*` require `auth:sanctum` unless explicitly public (e.g. login, OAuth callbacks)
-- Auth endpoints: `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/logout-all`, `GET /api/v1/auth/me`
+- Auth endpoints: `POST /api/v1/auth/login`, `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/logout-all`, `GET /api/v1/auth/me`, `PATCH /api/v1/auth/profile`
 - No public registration in v1 — users are seeded / created via artisan for this personal hub
 
 ### Token lifetimes
@@ -82,6 +82,10 @@ Sanctum global `expiration` stays `null`; each token sets its own `expires_at`:
 | `remember: true` | `*`, `remember` | 24 hours (hard ceiling) |
 
 `POST /api/v1/auth/refresh` rotates the current token (revoke old → issue new) and preserves the remember-me lifetime class. Login and refresh responses include `expires_at`. Clients should refresh while the token is still valid (e.g. on app load); idle past expiry requires re-login.
+
+### Profile
+
+- `PATCH /api/v1/auth/profile` — update the authenticated user’s `name` (required string, max 255). Returns `UserResource`. Email change and avatar upload are deferred.
 
 ### Sessions / devices
 

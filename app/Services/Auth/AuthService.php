@@ -138,6 +138,15 @@ class AuthService
         }
     }
 
+    public function updateProfile(User $user, string $name): User
+    {
+        $user->forceFill([
+            'name' => $name,
+        ])->save();
+
+        return $user->refresh();
+    }
+
     /**
      * @return array{user: User, token: string, expires_at: string}
      */
