@@ -194,9 +194,16 @@ class GithubIntegration extends BaseIntegration
      */
     public function put(IntegrationConnection $connection, string $path, array $body = [], array $query = []): Response
     {
+        if ($body === []) {
+            return $this->request($connection, 'PUT', $path, [
+                'query' => $query,
+                'empty_body' => true,
+            ]);
+        }
+
         return $this->request($connection, 'PUT', $path, [
             'query' => $query,
-            'json' => $body === [] ? null : $body,
+            'json' => $body,
         ]);
     }
 
@@ -210,5 +217,76 @@ class GithubIntegration extends BaseIntegration
             'query' => $query,
             'json' => $body === [] ? null : $body,
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $body
+     * @param  array<string, mixed>  $query
+     */
+    public function delete(IntegrationConnection $connection, string $path, array $body = [], array $query = []): Response
+    {
+        if ($body === []) {
+            return $this->request($connection, 'DELETE', $path, [
+                'query' => $query,
+                'empty_body' => true,
+            ]);
+        }
+
+        return $this->request($connection, 'DELETE', $path, [
+            'query' => $query,
+            'json' => $body,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $variables
+     * @return array<string, mixed>
+     */
+    public function graphql(IntegrationConnection $connection, string $query, array $variables = []): array
+    {
+        $token = $this->ensureValidToken($connection);
+
+        $response = Http::withToken($token)
+            ->accept('application/vnd.github+json')
+            ->withHeaders([
+                'X-GitHub-Api-Version' => self::API_VERSION,
+            ])
+            ->timeout(20)
+            ->post('https://api.github.com/graphql', [
+                'query' => $query,
+                'variables' => $variables,
+            ]);
+
+        if (! $response->successful()) {
+            throw IntegrationException::fromHttp(
+                $this->provider(),
+                $response->status(),
+                $response->json(),
+            );
+        }
+
+        $payload = $response->json() ?? [];
+        if (! is_array($payload)) {
+            throw new IntegrationException(
+                "[{$this->provider()}] Invalid GraphQL response.",
+                502,
+            );
+        }
+
+        if (isset($payload['errors']) && is_array($payload['errors']) && $payload['errors'] !== []) {
+            $message = is_string($payload['errors'][0]['message'] ?? null)
+                ? $payload['errors'][0]['message']
+                : 'GraphQL request failed.';
+
+            throw new IntegrationException(
+                "[{$this->provider()}] {$message}",
+                422,
+                $payload,
+            );
+        }
+
+        $data = $payload['data'] ?? [];
+
+        return is_array($data) ? $data : [];
     }
 }

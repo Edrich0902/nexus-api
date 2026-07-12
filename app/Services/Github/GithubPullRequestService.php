@@ -176,7 +176,7 @@ class GithubPullRequestService
     }
 
     /**
-     * @param  array{title: string, head: string, base: string, body?: string|null}  $input
+     * @param  array{title: string, head: string, base: string, body?: string|null, draft?: bool}  $input
      * @return array<string, mixed>
      */
     public function create(User $user, string $owner, string $repo, array $input): array
@@ -191,6 +191,9 @@ class GithubPullRequestService
         ];
         if (array_key_exists('body', $input) && $input['body'] !== null) {
             $body['body'] = $input['body'];
+        }
+        if (! empty($input['draft'])) {
+            $body['draft'] = true;
         }
 
         $response = $this->github->post($connection, "repos/{$owner}/{$repo}/pulls", $body);
@@ -228,6 +231,71 @@ class GithubPullRequestService
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    public function markReady(User $user, string $owner, string $repo, int $number): array
+    {
+        return $this->runDraftMutation(
+            $user,
+            $owner,
+            $repo,
+            $number,
+            <<<'GRAPHQL'
+            mutation MarkReady($id: ID!) {
+              markPullRequestReadyForReview(input: { pullRequestId: $id }) {
+                pullRequest { number isDraft }
+              }
+            }
+            GRAPHQL,
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function convertToDraft(User $user, string $owner, string $repo, int $number): array
+    {
+        return $this->runDraftMutation(
+            $user,
+            $owner,
+            $repo,
+            $number,
+            <<<'GRAPHQL'
+            mutation ConvertDraft($id: ID!) {
+              convertPullRequestToDraft(input: { pullRequestId: $id }) {
+                pullRequest { number isDraft }
+              }
+            }
+            GRAPHQL,
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function runDraftMutation(
+        User $user,
+        string $owner,
+        string $repo,
+        int $number,
+        string $query,
+    ): array {
+        $this->repos->findRepo($user, $owner, $repo);
+        $connection = $this->github->requireConnection($user);
+        $pullResponse = $this->github->get($connection, "repos/{$owner}/{$repo}/pulls/{$number}");
+        $pull = $pullResponse->json() ?? [];
+        $nodeId = is_string($pull['node_id'] ?? null) ? $pull['node_id'] : null;
+
+        if ($nodeId === null || $nodeId === '') {
+            abort(422, 'Pull request node id unavailable.');
+        }
+
+        $this->github->graphql($connection, $query, ['id' => $nodeId]);
+
+        return $this->show($user, $owner, $repo, $number);
+    }
+
+    /**
      * @param  array<string, mixed>  $item
      * @return array<string, mixed>
      */
@@ -239,6 +307,7 @@ class GithubPullRequestService
 
         return [
             'id' => $item['id'] ?? null,
+            'node_id' => $item['node_id'] ?? null,
             'number' => $item['number'] ?? null,
             'title' => $item['title'] ?? null,
             'body' => $item['body'] ?? null,

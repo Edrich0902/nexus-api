@@ -237,12 +237,20 @@ abstract class BaseIntegration implements IntegrationInterface
         $method = strtoupper($method);
         $query = $options['query'] ?? [];
         $json = $options['json'] ?? null;
+        $pending = $client->withQueryParameters($query);
+
+        if (($options['empty_body'] ?? false) === true) {
+            // GitHub starring requires Content-Length: 0 with no JSON body.
+            return $pending
+                ->withHeaders(['Content-Length' => '0'])
+                ->send($method, $relativePath);
+        }
 
         return match ($method) {
             'GET' => $client->get($relativePath, $query),
-            'DELETE' => $this->sendJson($client->withQueryParameters($query), 'DELETE', $relativePath, $json),
-            'PUT' => $this->sendJson($client->withQueryParameters($query), 'PUT', $relativePath, $json),
-            'POST' => $this->sendJson($client->withQueryParameters($query), 'POST', $relativePath, $json),
+            'DELETE' => $this->sendJson($pending, 'DELETE', $relativePath, $json),
+            'PUT' => $this->sendJson($pending, 'PUT', $relativePath, $json),
+            'POST' => $this->sendJson($pending, 'POST', $relativePath, $json),
             default => $client->send($method, $relativePath, $options),
         };
     }

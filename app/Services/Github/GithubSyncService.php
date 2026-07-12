@@ -66,6 +66,7 @@ class GithubSyncService
                         'language' => isset($repo['language']) && is_string($repo['language'])
                             ? $repo['language']
                             : null,
+                        'starred' => false,
                     ],
                 );
             }
@@ -80,6 +81,8 @@ class GithubSyncService
                 ->delete();
         }
 
+        $this->syncStarredFlags($user, $connection);
+
         $connection->forceFill([
             'last_synced_at' => now(),
         ])->save();
@@ -88,5 +91,43 @@ class GithubSyncService
     public function connectionFor(User $user): ?IntegrationConnection
     {
         return $this->github->connectionFor($user);
+    }
+
+    private function syncStarredFlags(User $user, IntegrationConnection $connection): void
+    {
+        GithubRepo::query()
+            ->where('user_id', $user->id)
+            ->update(['starred' => false]);
+
+        $page = 1;
+
+        do {
+            $response = $this->github->get($connection, 'user/starred', [
+                'per_page' => 100,
+                'page' => $page,
+            ]);
+
+            /** @var list<array<string, mixed>> $starred */
+            $starred = $response->json() ?? [];
+            if (! is_array($starred)) {
+                break;
+            }
+
+            $ids = [];
+            foreach ($starred as $repo) {
+                if (is_array($repo) && isset($repo['id'])) {
+                    $ids[] = (int) $repo['id'];
+                }
+            }
+
+            if ($ids !== []) {
+                GithubRepo::query()
+                    ->where('user_id', $user->id)
+                    ->whereIn('github_id', $ids)
+                    ->update(['starred' => true]);
+            }
+
+            $page++;
+        } while (count($starred) === 100);
     }
 }

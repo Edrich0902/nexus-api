@@ -17,7 +17,8 @@ class IntegrationException extends RuntimeException
 
     public static function needsReauth(string $provider, string $message = 'Re-authorization required.'): self
     {
-        return new self("[{$provider}] {$message}", 401);
+        // Use 409 so clients do not treat this as a Sanctum session failure (HTTP 401).
+        return new self("[{$provider}] {$message}", 409);
     }
 
     public static function fromHttp(string $provider, int $status, ?array $payload = null): self
@@ -27,6 +28,11 @@ class IntegrationException extends RuntimeException
             : (is_string($payload['message'] ?? null)
                 ? $payload['message']
                 : (is_string($payload['error_description'] ?? null) ? $payload['error_description'] : 'Request failed.'));
+
+        // Upstream provider 401/403 auth failures are integration problems, not Nexus auth.
+        if ($status === 401) {
+            $status = 409;
+        }
 
         return new self("[{$provider}] {$detail}", $status, $payload);
     }

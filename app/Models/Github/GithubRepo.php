@@ -20,12 +20,14 @@ class GithubRepo extends Model
         'description',
         'pushed_at',
         'language',
+        'starred',
     ];
 
     protected function casts(): array
     {
         return [
             'private' => 'boolean',
+            'starred' => 'boolean',
             'pushed_at' => 'datetime',
             'github_id' => 'integer',
         ];

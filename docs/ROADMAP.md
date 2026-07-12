@@ -87,6 +87,11 @@ At kickoff: model the domain lightly, define CRUD + any “quick-log” endpoint
 - [x] Account profile (`GET /me`) + repo sync (`github_repos`)
 - [x] Live PR inbox, repo PRs, commits, branches
 - [x] PR detail + file diffs, create PR, merge PR
+- [x] Starred repos sync + star/unstar
+- [x] Global search (repos / issues / code)
+- [x] Branch create/delete
+- [x] Draft PRs + ready-for-review / convert-to-draft (GraphQL)
+- [x] PR reviews list + approve / request changes / comment
 
 ### Instagram (optional / later)
 

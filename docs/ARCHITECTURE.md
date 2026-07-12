@@ -86,17 +86,19 @@ GitHub specifically:
 | Auth type | GitHub App user access tokens (expiring + refresh) |
 | Tokens | Encrypted on `integration_connections` (`provider=github`) |
 | Profile | Live `GET /api/v1/github/me` |
-| Repos | Synced to `github_repos`; `GET /api/v1/github/repos` |
-| PRs / diffs / commits / branches | Live proxy under `/api/v1/github/repos/{owner}/{repo}/…` |
+| Repos | Synced to `github_repos` (includes `starred`); `GET /api/v1/github/repos`; star toggle live |
+| PRs / diffs / commits / branches | Live proxy under `/api/v1/github/repos/{owner}/{repo}/…` (branch create/delete; reviews; GraphQL ready/draft) |
 | Cross-repo PR inbox | Live `GET /api/v1/github/pulls` (search) |
-| Create / merge PR | Write-through live proxy (`github-write` throttle) |
+| Home pulse | Live `GET /api/v1/github/pulse` (open + merged PRs, recent commits) |
+| Global search | Live `GET /api/v1/github/search` (`repositories` / `issues` / `code`) |
+| Create / merge PR | Write-through live proxy (`github-write` throttle); draft create + GraphQL ready/draft |
 
 ### Rate limiting (GitHub)
 
 - `github-oauth-callback` 20/min IP
 - `github-sync` 6/min
 - `github-proxy` 60/min
-- `github-search` 20/min
+- `github-search` 15/min
 - `github-write` 20/min
 
 ## Shared API resource / response conventions

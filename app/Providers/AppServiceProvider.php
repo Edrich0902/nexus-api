@@ -83,7 +83,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('github-search', function (Request $request) {
-            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+            return Limit::perMinute(15)->by($request->user()?->id ?: $request->ip());
         });
 
         RateLimiter::for('github-write', function (Request $request) {

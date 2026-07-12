@@ -25,6 +25,7 @@ class GithubRepoResource extends JsonResource
             'description' => $this->description,
             'pushed_at' => $this->pushed_at?->toIso8601String(),
             'language' => $this->language,
+            'starred' => $this->starred,
         ];
     }
 }

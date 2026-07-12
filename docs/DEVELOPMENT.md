@@ -143,10 +143,20 @@ php artisan spotify:sync --type=playlists
 ## GitHub OAuth (local)
 
 1. Register a **GitHub App** (not OAuth App). Callback: `http://127.0.0.1:80/github/callback` (exact match in app settings + `.env`).
-2. Permissions: Metadata (read), Contents (read), Pull requests (read & write). Enable expiring user tokens. Install on your account.
+2. Permissions (repository): Metadata (read), Contents (**read & write**), Pull requests (read & write). Account permissions (separate section): **Starring → Read and write**. Enable expiring user tokens. Install on your account.
 3. Set `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_APP_ID`, `GITHUB_PRIVATE_KEY`, `GITHUB_REDIRECT_URI`, `GITHUB_FRONTEND_REDIRECT` in `.env`.
 4. Authenticated `GET /api/v1/github/connect` → open `url` → GitHub redirects to loopback callback → browser sent to `GITHUB_FRONTEND_REDIRECT`.
 5. Keep a queue worker running so `SyncGithubReposJob` can populate `github_repos` after connect/sync.
+
+### GitHub starring troubleshooting
+
+`Resource not accessible by integration` on star/unstar means the **user access token** lacks Account **Starring write**. Nexus disconnect alone is not enough if GitHub still has an old authorization grant.
+
+1. GitHub App settings → **Permissions & events** → **Account permissions** → Starring = **Read and write** → Save.
+2. GitHub → **Settings → Applications → Installed GitHub Apps** → your app → accept any “new permissions” request.
+3. GitHub → **Settings → Applications → Authorized GitHub Apps** → your app → **Revoke**.
+4. In Nexus: Disconnect GitHub (if still linked) → Connect again and accept Starring on the consent screen.
+5. Sync. Star toggles always update Nexus; if GitHub still rejects the write you will see a “Saved in Nexus only” warning.
 
 ## Adding a New Module
 

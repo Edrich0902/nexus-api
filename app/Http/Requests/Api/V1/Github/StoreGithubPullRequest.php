@@ -21,6 +21,7 @@ class StoreGithubPullRequest extends FormRequest
             'head' => ['required', 'string', 'max:255'],
             'base' => ['required', 'string', 'max:255'],
             'body' => ['nullable', 'string', 'max:65535'],
+            'draft' => ['sometimes', 'boolean'],
         ];
     }
 }

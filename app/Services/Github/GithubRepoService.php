@@ -3,8 +3,10 @@
 namespace App\Services\Github;
 
 use App\Http\Resources\Api\V1\Github\GithubRepoResource;
+use App\Integrations\Exceptions\IntegrationException;
 use App\Integrations\Github\GithubIntegration;
 use App\Models\Github\GithubRepo;
+use App\Models\Integration\IntegrationConnection;
 use App\Models\User;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -14,12 +16,19 @@ class GithubRepoService
         private readonly GithubIntegration $github,
     ) {}
 
-    public function listRepos(User $user): AnonymousResourceCollection
+    public function listRepos(User $user, ?bool $starredOnly = null): AnonymousResourceCollection
     {
         $this->github->requireConnection($user);
 
-        $repos = GithubRepo::query()
-            ->where('user_id', $user->id)
+        $query = GithubRepo::query()
+            ->where('user_id', $user->id);
+
+        if ($starredOnly === true) {
+            $query->where('starred', true);
+        }
+
+        $repos = $query
+            ->orderByDesc('starred')
             ->orderByDesc('pushed_at')
             ->orderBy('full_name')
             ->get();
@@ -194,5 +203,121 @@ class GithubRepoService
             'html_url' => isset($payload['html_url']) ? (string) $payload['html_url'] : null,
             'files' => $mapped,
         ];
+    }
+
+    /**
+     * @return array{starred: bool, github_synced: bool}
+     */
+    public function star(User $user, string $owner, string $repo): array
+    {
+        $model = $this->findRepo($user, $owner, $repo);
+        $connection = $this->github->requireConnection($user);
+
+        $githubSynced = $this->pushStarState($connection, $owner, $repo, true);
+        $model->forceFill(['starred' => true])->save();
+
+        return [
+            'starred' => true,
+            'github_synced' => $githubSynced,
+        ];
+    }
+
+    /**
+     * @return array{starred: bool, github_synced: bool}
+     */
+    public function unstar(User $user, string $owner, string $repo): array
+    {
+        $model = $this->findRepo($user, $owner, $repo);
+        $connection = $this->github->requireConnection($user);
+
+        $githubSynced = $this->pushStarState($connection, $owner, $repo, false);
+        $model->forceFill(['starred' => false])->save();
+
+        return [
+            'starred' => false,
+            'github_synced' => $githubSynced,
+        ];
+    }
+
+    private function pushStarState(
+        IntegrationConnection $connection,
+        string $owner,
+        string $repo,
+        bool $star,
+    ): bool {
+        try {
+            if ($star) {
+                $this->github->put($connection, "user/starred/{$owner}/{$repo}");
+            } else {
+                $this->github->delete($connection, "user/starred/{$owner}/{$repo}");
+            }
+
+            return true;
+        } catch (IntegrationException $exception) {
+            // GitHub Apps frequently reject starring writes even when Starring
+            // read works. Keep the Nexus bookmark and report the sync miss.
+            if ($this->isGithubStarPermissionError($exception)) {
+                return false;
+            }
+
+            throw $exception;
+        }
+    }
+
+    private function isGithubStarPermissionError(IntegrationException $exception): bool
+    {
+        if ($exception->statusCode !== 403) {
+            return false;
+        }
+
+        $message = strtolower($exception->getMessage());
+
+        return str_contains($message, 'resource not accessible by integration')
+            || str_contains($message, 'starring');
+    }
+
+    /**
+     * @return array{name: string, protected: bool}
+     */
+    public function createBranch(User $user, string $owner, string $repo, string $name, ?string $from = null): array
+    {
+        $model = $this->findRepo($user, $owner, $repo);
+        $connection = $this->github->requireConnection($user);
+        $fromBranch = $from !== null && $from !== '' ? $from : ($model->default_branch ?? 'main');
+        $fromEnc = rawurlencode($fromBranch);
+
+        $refResponse = $this->github->get($connection, "repos/{$owner}/{$repo}/git/ref/heads/{$fromEnc}");
+        $refPayload = $refResponse->json() ?? [];
+        $sha = is_array($refPayload['object'] ?? null)
+            ? (string) ($refPayload['object']['sha'] ?? '')
+            : '';
+
+        if ($sha === '') {
+            abort(422, 'Unable to resolve base branch tip.');
+        }
+
+        $this->github->post($connection, "repos/{$owner}/{$repo}/git/refs", [
+            'ref' => 'refs/heads/'.$name,
+            'sha' => $sha,
+        ]);
+
+        return [
+            'name' => $name,
+            'protected' => false,
+        ];
+    }
+
+    public function deleteBranch(User $user, string $owner, string $repo, string $branch): void
+    {
+        $model = $this->findRepo($user, $owner, $repo);
+        $default = $model->default_branch ?? 'main';
+
+        if ($branch === $default) {
+            abort(422, 'Cannot delete the default branch.');
+        }
+
+        $connection = $this->github->requireConnection($user);
+        $branchEnc = rawurlencode($branch);
+        $this->github->delete($connection, "repos/{$owner}/{$repo}/git/refs/heads/{$branchEnc}");
     }
 }

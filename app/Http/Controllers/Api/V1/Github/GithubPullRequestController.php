@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\V1\Github;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Github\MergeGithubPullRequest;
 use App\Http\Requests\Api\V1\Github\StoreGithubPullRequest;
+use App\Http\Requests\Api\V1\Github\StoreGithubReviewRequest;
 use App\Services\Github\GithubPullRequestService;
+use App\Services\Github\GithubReviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,6 +15,7 @@ class GithubPullRequestController extends Controller
 {
     public function __construct(
         private readonly GithubPullRequestService $pulls,
+        private readonly GithubReviewService $reviews,
     ) {}
 
     public function inbox(Request $request): JsonResponse
@@ -74,5 +77,35 @@ class GithubPullRequestController extends Controller
             $number,
             $request->validated(),
         ));
+    }
+
+    public function markReady(Request $request, string $owner, string $repo, int $number): JsonResponse
+    {
+        return response()->json($this->pulls->markReady($request->user(), $owner, $repo, $number));
+    }
+
+    public function convertToDraft(Request $request, string $owner, string $repo, int $number): JsonResponse
+    {
+        return response()->json($this->pulls->convertToDraft($request->user(), $owner, $repo, $number));
+    }
+
+    public function reviews(Request $request, string $owner, string $repo, int $number): JsonResponse
+    {
+        return response()->json($this->reviews->list($request->user(), $owner, $repo, $number));
+    }
+
+    public function storeReview(
+        StoreGithubReviewRequest $request,
+        string $owner,
+        string $repo,
+        int $number,
+    ): JsonResponse {
+        return response()->json($this->reviews->submit(
+            $request->user(),
+            $owner,
+            $repo,
+            $number,
+            $request->validated(),
+        ), 201);
     }
 }
