@@ -175,9 +175,13 @@ SPOTIFY_CLIENT_SECRET=
 SPOTIFY_REDIRECT_URI=http://127.0.0.1:80/spotify/callback
 SPOTIFY_FRONTEND_REDIRECT=http://nexus.test/spotify
 
-# GitHub (when prioritized)
+# GitHub App
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
+GITHUB_APP_ID=
+GITHUB_PRIVATE_KEY=
+GITHUB_REDIRECT_URI=http://127.0.0.1:80/github/callback
+GITHUB_FRONTEND_REDIRECT=http://nexus.test/github
 
 # Sports / F1 (when prioritized)
 F1_API_KEY=

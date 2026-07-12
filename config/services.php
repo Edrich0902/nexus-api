@@ -42,4 +42,13 @@ return [
         'frontend_redirect' => env('SPOTIFY_FRONTEND_REDIRECT', 'http://nexus.test/spotify'),
     ],
 
+    'github' => [
+        'client_id' => env('GITHUB_CLIENT_ID'),
+        'client_secret' => env('GITHUB_CLIENT_SECRET'),
+        'app_id' => env('GITHUB_APP_ID'),
+        'private_key' => env('GITHUB_PRIVATE_KEY'),
+        'redirect' => env('GITHUB_REDIRECT_URI', 'http://127.0.0.1:80/github/callback'),
+        'frontend_redirect' => env('GITHUB_FRONTEND_REDIRECT', 'http://nexus.test/github'),
+    ],
+
 ];
