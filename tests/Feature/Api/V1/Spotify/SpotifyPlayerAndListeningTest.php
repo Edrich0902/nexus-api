@@ -151,7 +151,18 @@ class SpotifyPlayerAndListeningTest extends TestCase
 
         $this->getJson('/api/v1/spotify/taste')
             ->assertOk()
-            ->assertJsonStructure(['genres', 'top_artists', 'top_tracks', 'notes']);
+            ->assertJsonStructure([
+                'genres',
+                'top_artists',
+                'top_tracks',
+                'summary' => [
+                    'plays_last_7d',
+                    'unique_tracks_last_7d',
+                    'top_genre',
+                    'peak_bucket',
+                ],
+                'notes',
+            ]);
 
         $this->assertNotNull($track->id);
     }

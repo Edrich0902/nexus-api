@@ -12,6 +12,7 @@ class GithubSyncService
 {
     public function __construct(
         private readonly GithubIntegration $github,
+        private readonly GithubStatsService $stats,
     ) {}
 
     public function syncRepos(User $user): void
@@ -82,6 +83,12 @@ class GithubSyncService
         }
 
         $this->syncStarredFlags($user, $connection);
+
+        try {
+            $this->stats->recompute($user);
+        } catch (\Throwable) {
+            // Stats refresh is best-effort after repo sync.
+        }
 
         $connection->forceFill([
             'last_synced_at' => now(),

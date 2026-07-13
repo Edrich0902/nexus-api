@@ -156,15 +156,48 @@ class SpotifyTasteService
             ->values()
             ->all();
 
+        $timeOfDay = $this->timeOfDaySkew($user);
+        $playSummary = $this->playSummary($user, 7);
+
         return [
             'genres' => $genreHistogram,
             'top_artists' => $this->mapTopArtists($topArtists),
             'top_tracks' => $this->mapTopTracks($topTracks),
             'on_repeat' => $onRepeat,
-            'time_of_day' => $this->timeOfDaySkew($user),
+            'time_of_day' => $timeOfDay,
+            'summary' => [
+                'plays_last_7d' => $playSummary['plays'],
+                'unique_tracks_last_7d' => $playSummary['unique_tracks'],
+                'top_genre' => $genreHistogram[0]['genre'] ?? null,
+                'peak_bucket' => $timeOfDay['peak_bucket'],
+            ],
             'notes' => [
                 'Spotify audio-features and recommendations APIs are unavailable for this app; taste is derived from tops, recent plays, and on-repeat heuristics.',
             ],
+        ];
+    }
+
+    /**
+     * @return array{plays: int, unique_tracks: int}
+     */
+    private function playSummary(User $user, int $days): array
+    {
+        $since = Carbon::now()->subDays($days);
+
+        $plays = SpotifyRecentlyPlayed::query()
+            ->where('user_id', $user->id)
+            ->where('played_at', '>=', $since)
+            ->count();
+
+        $unique = SpotifyRecentlyPlayed::query()
+            ->where('user_id', $user->id)
+            ->where('played_at', '>=', $since)
+            ->distinct()
+            ->count('spotify_track_id');
+
+        return [
+            'plays' => $plays,
+            'unique_tracks' => $unique,
         ];
     }
 

@@ -354,4 +354,61 @@ class GithubFeaturesTest extends TestCase
             'event' => 'COMMENT',
         ])->assertStatus(422);
     }
+
+    public function test_stats_endpoint_returns_contribution_snapshot(): void
+    {
+        $today = now()->toDateString();
+        $yesterday = now()->subDay()->toDateString();
+
+        Http::fake([
+            'api.github.com/user' => Http::response([
+                'id' => 4242,
+                'login' => 'edrich',
+            ], 200),
+            'api.github.com/graphql' => Http::response([
+                'data' => [
+                    'viewer' => [
+                        'contributionsCollection' => [
+                            'contributionCalendar' => [
+                                'totalContributions' => 42,
+                                'weeks' => [
+                                    [
+                                        'contributionDays' => [
+                                            [
+                                                'date' => $yesterday,
+                                                'contributionCount' => 2,
+                                                'color' => '#26a641',
+                                            ],
+                                            [
+                                                'date' => $today,
+                                                'contributionCount' => 1,
+                                                'color' => '#39d353',
+                                            ],
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ], 200),
+            'api.github.com/search/issues*' => Http::response([
+                'total_count' => 3,
+                'items' => [],
+            ], 200),
+        ]);
+
+        $this->getJson('/api/v1/github/stats')
+            ->assertOk()
+            ->assertJsonPath('total_contributions', 42)
+            ->assertJsonPath('current_streak', 2)
+            ->assertJsonPath('open_pr_count', 3)
+            ->assertJsonPath('languages.0.language', 'PHP')
+            ->assertJsonPath('top_repos.0.full_name', 'edrich/nexus-api')
+            ->assertJsonStructure([
+                'calendar' => ['weeks'],
+                'sparkline',
+                'computed_at',
+            ]);
+    }
 }

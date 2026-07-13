@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Github\GithubPullRequestController;
 use App\Http\Controllers\Api\V1\Github\GithubPulseController;
 use App\Http\Controllers\Api\V1\Github\GithubRepoController;
 use App\Http\Controllers\Api\V1\Github\GithubSearchController;
+use App\Http\Controllers\Api\V1\Github\GithubStatsController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('github')->group(function (): void {
@@ -45,6 +46,8 @@ Route::prefix('github')->group(function (): void {
         Route::get('/pulls', [GithubPullRequestController::class, 'inbox'])
             ->middleware('throttle:github-search');
         Route::get('/pulse', GithubPulseController::class)
+            ->middleware('throttle:github-search');
+        Route::get('/stats', GithubStatsController::class)
             ->middleware('throttle:github-search');
         Route::get('/repos/{owner}/{repo}/pulls', [GithubPullRequestController::class, 'index'])
             ->middleware('throttle:github-proxy');

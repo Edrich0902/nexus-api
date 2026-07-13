@@ -73,6 +73,7 @@ class SpotifySyncService
             );
         }
 
+        $this->taste->recompute($user);
         $this->touchLastSynced($user);
     }
 
