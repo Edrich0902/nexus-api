@@ -34,6 +34,6 @@ class IntegrationException extends RuntimeException
             $status = 409;
         }
 
-        return new self("[{$provider}] {$detail}", $status, $payload);
+        return new self("[{$provider}] {$detail} (HTTP {$status})", $status, $payload);
     }
 }

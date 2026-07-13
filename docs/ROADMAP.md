@@ -107,9 +107,13 @@ Only if there is a clear personal-hub use case and a viable API path. Treat as e
 
 ## Milestone 5 — Sports & F1
 
-**Intent:** Schedules, standings, and weekend/live sports context for the dashboard ticker and dedicated views.
+**Intent:** Schedules, standings, and weekend sports context for home cards and dedicated per-sport views.
 
-At kickoff: choose data sources, refresh strategy, and which leagues/events are in scope for v1.
+- [x] TheSportsDB free integration (global, no OAuth) with whitelist competitions
+- [x] Upstream rate gate shared with Spotify/GitHub HTTP
+- [x] Scheduler sync → `sports_*` tables; DB-backed `/api/v1/sports/*`
+- [x] Sports Hub sidebar + sport pages + home pulse/snapshot cards
+- [ ] F1 via official F1 API (separate module)
 
 ---
 

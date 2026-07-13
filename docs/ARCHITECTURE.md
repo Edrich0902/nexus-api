@@ -101,6 +101,26 @@ GitHub specifically:
 - `github-search` 15/min
 - `github-write` 20/min
 
+Sports (TheSportsDB) specifically:
+
+| Concern | Strategy |
+|---------|----------|
+| Auth | Global API key (`SPORTSDB_API_KEY`, default free `123`) — no per-user OAuth |
+| Leagues | Whitelist in `config/services.php` → `services.sportsdb.leagues` |
+| Sync | Micro-jobs (1 league / 1 sport), chained every ~2–6h; fail-fast rate gate (no worker sleep); home snapshot only after sync waves |
+| Upstream gate | `UpstreamRateGate` / `ProviderHttpClient` (sportsdb ~20/min, `max_wait_seconds=0` → job release) |
+| Home | `GET /api/v1/sports/home` from `sports_home_snapshots` |
+| Per-sport | `GET /api/v1/sports/{sport}` (football, tennis, rugby, golf, darts, field-hockey) |
+
+### Rate limiting (Sports)
+
+- `sports-sync` 6/min
+- `sports-read` 60/min
+
+### Upstream rate gates (all providers)
+
+`App\Integrations\Support\UpstreamRateGate` + `ProviderHttpClient` enforce per-provider limits from `config/services.php` → `rate_limits` before outbound HTTP. OAuth integrations acquire the gate in `BaseIntegration::request()`.
+
 ## Shared API resource / response conventions
 
 Auth and future modules return JSON via API Resources (`App\Http\Resources\Api\V1\...`) without a top-level `data` wrapper. Validation and auth errors use Laravel’s default JSON error shape (see Error handling below).

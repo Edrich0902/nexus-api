@@ -89,6 +89,14 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('github-write', function (Request $request) {
             return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
         });
+
+        RateLimiter::for('sports-sync', function (Request $request) {
+            return Limit::perMinute(6)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('sports-read', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
     }
 
     private function configureHttps(): void

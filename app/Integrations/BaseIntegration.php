@@ -5,6 +5,7 @@ namespace App\Integrations;
 use App\Integrations\Contracts\IntegrationInterface;
 use App\Integrations\DTOs\TokenSet;
 use App\Integrations\Exceptions\IntegrationException;
+use App\Integrations\Support\UpstreamRateGate;
 use App\Models\Integration\IntegrationConnection;
 use App\Models\Integration\IntegrationOauthState;
 use App\Models\User;
@@ -18,6 +19,10 @@ abstract class BaseIntegration implements IntegrationInterface
     protected const TOKEN_REFRESH_SKEW_SECONDS = 300;
 
     protected const OAUTH_STATE_TTL_MINUTES = 10;
+
+    public function __construct(
+        protected readonly UpstreamRateGate $rateGate,
+    ) {}
 
     abstract public function provider(): string;
 
@@ -194,17 +199,21 @@ abstract class BaseIntegration implements IntegrationInterface
     ): Response {
         $relativePath = ltrim($path, '/');
         $token = $this->ensureValidToken($connection);
+        $this->rateGate->acquire($this->provider());
         $response = $this->sendAuthorized($token, $method, $relativePath, $options);
 
         if ($response->status() === 401) {
             $this->refreshAccessToken($connection->fresh());
             $connection->refresh();
+            $this->rateGate->acquire($this->provider());
             $response = $this->sendAuthorized($connection->access_token, $method, $relativePath, $options);
         }
 
         if ($response->status() === 429) {
-            $retryAfter = (int) $response->header('Retry-After', 1);
-            usleep(max(1, $retryAfter) * 1_000_000);
+            $retryAfter = max(1, (int) $response->header('Retry-After', 1));
+            $this->rateGate->exhaust($this->provider());
+            usleep($retryAfter * 1_000_000);
+            $this->rateGate->acquire($this->provider());
             $response = $this->sendAuthorized(
                 $this->ensureValidToken($connection->fresh()),
                 $method,
