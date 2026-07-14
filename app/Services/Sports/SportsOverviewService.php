@@ -54,7 +54,7 @@ class SportsOverviewService
     public function overview(string $sportSlug): array
     {
         $this->assertSport($sportSlug);
-        $today = Carbon::today();
+        $now = Carbon::now('UTC');
 
         $leagues = SportsLeague::query()
             ->where('sport_slug', $sportSlug)
@@ -63,24 +63,22 @@ class SportsOverviewService
 
         $upcoming = SportsEvent::query()
             ->where('sport_slug', $sportSlug)
-            ->whereDate('event_date', '>=', $today)
-            ->orderBy('event_date')
-            ->orderBy('event_time')
+            ->where('starts_at', '>=', $now)
+            ->orderBy('starts_at')
             ->limit(12)
             ->get();
 
         $recent = SportsEvent::query()
             ->where('sport_slug', $sportSlug)
-            ->whereDate('event_date', '<=', $today)
-            ->orderByDesc('event_date')
-            ->orderByDesc('event_time')
+            ->where('starts_at', '<=', $now)
+            ->orderByDesc('starts_at')
             ->limit(12)
             ->get();
 
         $majors = SportsEvent::query()
             ->where('sport_slug', $sportSlug)
             ->where('is_major', true)
-            ->orderByDesc('event_date')
+            ->orderByDesc('starts_at')
             ->limit(8)
             ->get();
 
@@ -123,8 +121,7 @@ class SportsOverviewService
 
         return SportsEvent::query()
             ->where('sport_slug', $sportSlug)
-            ->orderByDesc('event_date')
-            ->orderByDesc('event_time')
+            ->orderByDesc('starts_at')
             ->paginate(min(50, max(1, $perPage)));
     }
 
@@ -153,8 +150,8 @@ class SportsOverviewService
             'sport_slug' => $event->sport_slug,
             'name' => $event->name,
             'league_name' => $event->league_name,
-            'event_date' => $event->event_date?->toDateString(),
-            'event_time' => $event->event_time,
+            'event_date' => $event->starts_at?->toDateString() ?? $event->event_date?->toDateString(),
+            'starts_at' => $event->starts_at?->toIso8601String(),
             'status' => $event->status,
             'home_team' => $event->home_team,
             'away_team' => $event->away_team,

@@ -77,6 +77,7 @@ class SportsApiTest extends TestCase
             'sport_slug' => 'football',
             'name' => 'Arsenal vs Chelsea',
             'event_date' => now()->addDay()->toDateString(),
+            'starts_at' => now()->addDay(),
             'home_team' => 'Arsenal',
             'away_team' => 'Chelsea',
         ]);
@@ -86,13 +87,18 @@ class SportsApiTest extends TestCase
             'sport_slug' => 'tennis',
             'name' => 'Player A vs Player B',
             'event_date' => now()->addDay()->toDateString(),
+            'starts_at' => now()->addDay(),
         ]);
 
-        $this->getJson('/api/v1/sports/football')
+        $response = $this->getJson('/api/v1/sports/football')
             ->assertOk()
             ->assertJsonPath('sport', 'football')
             ->assertJsonCount(1, 'upcoming')
             ->assertJsonPath('upcoming.0.name', 'Arsenal vs Chelsea');
+
+        $startsAt = $response->json('upcoming.0.starts_at');
+        $this->assertIsString($startsAt);
+        $this->assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/', $startsAt);
     }
 
     public function test_sync_queues_jobs(): void
@@ -178,11 +184,26 @@ class SportsApiTest extends TestCase
             'away_score' => 1,
         ]);
 
+        $upcoming = SportsEvent::query()->where('sportsdb_id', 555001)->first();
+        $this->assertNotNull($upcoming);
+        $this->assertNotNull($upcoming->starts_at);
+        $this->assertSame('15:00:00', $upcoming->starts_at->timezone('UTC')->format('H:i:s'));
+        $this->assertSame(
+            now()->addDays(2)->toDateString(),
+            $upcoming->starts_at->timezone('UTC')->toDateString(),
+        );
+
         $snapshot = app(SportsHomeService::class)->getSnapshot();
         $this->assertGreaterThanOrEqual(1, $snapshot['event_count']);
         $this->assertArrayHasKey('featured', $snapshot);
         $this->assertArrayHasKey('football', $snapshot['featured']);
         $this->assertSame(['football', 'rugby', 'golf'], $snapshot['featured_sports']);
+
+        $featuredNext = $snapshot['featured']['football']['next'] ?? null;
+        if (is_array($featuredNext)) {
+            $this->assertArrayHasKey('starts_at', $featuredNext);
+            $this->assertNotNull($featuredNext['starts_at']);
+        }
     }
 
     public function test_fixtures_job_chains_remaining_league_chunks(): void

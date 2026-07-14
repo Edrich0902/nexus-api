@@ -29,8 +29,13 @@ class SportsHomeService
 
         $payload = $row->payload ?? [];
 
-        // Rebuild if older payload shape is missing featured lanes.
+        // Rebuild if older payload shape is missing featured lanes or starts_at.
         if (! isset($payload['featured']) || ! is_array($payload['featured'])) {
+            return $this->rebuild();
+        }
+
+        $sample = $payload['upcoming'][0] ?? $payload['featured']['football']['next'] ?? null;
+        if (is_array($sample) && ! array_key_exists('starts_at', $sample)) {
             return $this->rebuild();
         }
 
@@ -41,30 +46,29 @@ class SportsHomeService
 
     public function rebuild(): array
     {
-        $today = Carbon::today();
-        $weekEnd = $today->copy()->addDays(7);
+        $now = Carbon::now('UTC');
+        $weekEnd = $now->copy()->addDays(7);
 
         $featured = [];
         foreach (self::FEATURED_SPORTS as $slug) {
             $upcoming = SportsEvent::query()
                 ->where('sport_slug', $slug)
-                ->whereDate('event_date', '>=', $today)
+                ->where('starts_at', '>=', $now)
                 ->where(function ($q) {
                     $q->whereNull('status')
                         ->orWhereNotIn('status', ['FT', 'AET', 'PEN', 'Match Finished']);
                 })
                 ->whereNull('home_score')
                 ->whereNull('away_score')
-                ->orderBy('event_date')
-                ->orderBy('event_time')
+                ->orderBy('starts_at')
                 ->limit(3)
                 ->get();
 
             $recent = SportsEvent::query()
                 ->where('sport_slug', $slug)
-                ->whereDate('event_date', '<=', $today)
-                ->where(function ($q) use ($today) {
-                    $q->whereDate('event_date', '<', $today)
+                ->where('starts_at', '<=', $now)
+                ->where(function ($q) use ($now) {
+                    $q->where('starts_at', '<', $now->copy()->startOfDay())
                         ->orWhere(function ($done) {
                             $done->whereIn('status', ['FT', 'AET', 'PEN', 'Match Finished'])
                                 ->orWhereNotNull('home_score')
@@ -75,8 +79,7 @@ class SportsHomeService
                                 });
                         });
                 })
-                ->orderByDesc('event_date')
-                ->orderByDesc('event_time')
+                ->orderByDesc('starts_at')
                 ->limit(2)
                 ->get();
 
@@ -93,7 +96,7 @@ class SportsHomeService
 
         $bySport = SportsEvent::query()
             ->whereIn('sport_slug', self::FEATURED_SPORTS)
-            ->whereBetween('event_date', [$today->toDateString(), $weekEnd->toDateString()])
+            ->whereBetween('starts_at', [$now, $weekEnd])
             ->selectRaw('sport_slug, count(*) as total')
             ->groupBy('sport_slug')
             ->pluck('total', 'sport_slug')
@@ -171,10 +174,7 @@ class SportsHomeService
 
         return $items
             ->sortBy(function (array $event) {
-                $date = (string) ($event['event_date'] ?? '1970-01-01');
-                $time = (string) ($event['event_time'] ?? '00:00:00');
-
-                return "{$date} {$time}";
+                return (string) ($event['starts_at'] ?? '1970-01-01T00:00:00+00:00');
             }, descending: $key === 'recent')
             ->take($limit)
             ->values()
@@ -192,8 +192,8 @@ class SportsHomeService
             'sport_slug' => $event->sport_slug,
             'name' => $event->name,
             'league_name' => $event->league_name,
-            'event_date' => $event->event_date?->toDateString(),
-            'event_time' => $event->event_time,
+            'event_date' => $event->starts_at?->toDateString() ?? $event->event_date?->toDateString(),
+            'starts_at' => $event->starts_at?->toIso8601String(),
             'status' => $event->status,
             'home_team' => $event->home_team,
             'away_team' => $event->away_team,

@@ -15,6 +15,7 @@ class SportsEvent extends Model
         'league_name',
         'event_date',
         'event_time',
+        'starts_at',
         'status',
         'home_team',
         'away_team',
@@ -40,6 +41,7 @@ class SportsEvent extends Model
             'away_score' => 'integer',
             'is_major' => 'boolean',
             'event_date' => 'date',
+            'starts_at' => 'datetime',
             'raw' => 'array',
         ];
     }

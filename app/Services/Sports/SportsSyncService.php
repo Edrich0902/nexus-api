@@ -194,6 +194,7 @@ class SportsSyncService
                 'league_name',
                 'event_date',
                 'event_time',
+                'starts_at',
                 'status',
                 'home_team',
                 'away_team',
@@ -258,6 +259,7 @@ class SportsSyncService
                 ? $event['dateEvent']
                 : null,
             'event_time' => isset($event['strTime']) ? (string) $event['strTime'] : null,
+            'starts_at' => $this->resolveStartsAt($event),
             'status' => $status,
             'home_team' => $homeTeam,
             'away_team' => $awayTeam,
@@ -276,6 +278,43 @@ class SportsSyncService
             'created_at' => $now,
             'updated_at' => $now,
         ];
+    }
+
+    /**
+     * Resolve a UTC kickoff instant from TheSportsDB fields.
+     *
+     * Prefers strTimestamp; otherwise composes dateEvent + strTime (UTC wall clock).
+     *
+     * @param  array<string, mixed>  $event
+     */
+    private function resolveStartsAt(array $event): ?Carbon
+    {
+        $timestamp = $event['strTimestamp'] ?? null;
+        if (is_string($timestamp) && trim($timestamp) !== '') {
+            try {
+                return Carbon::parse($timestamp, 'UTC');
+            } catch (\Throwable) {
+                // Fall through to date/time composition.
+            }
+        }
+
+        $date = isset($event['dateEvent']) && is_string($event['dateEvent']) && $event['dateEvent'] !== ''
+            ? $event['dateEvent']
+            : null;
+
+        if ($date === null) {
+            return null;
+        }
+
+        $time = isset($event['strTime']) && is_string($event['strTime']) && trim($event['strTime']) !== ''
+            ? trim($event['strTime'])
+            : '00:00:00';
+
+        try {
+            return Carbon::parse("{$date} {$time}", 'UTC');
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
