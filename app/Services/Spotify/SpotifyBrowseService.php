@@ -82,14 +82,103 @@ class SpotifyBrowseService
                         'tracks' => $this->mapTracks(is_array($items) ? $items : []),
                     ];
                 } catch (IntegrationException $e) {
-                    if (in_array($e->statusCode, [403, 404], true)) {
+                    if (in_array($e->statusCode, [403, 404, 429], true)) {
                         return [
                             'available' => false,
                             'message' => 'Top tracks unavailable from Spotify for this app.',
-                            'tracks' => $this->localTracksForArtist($artistId, 10),
+                            'tracks' => $e->statusCode === 429
+                                ? []
+                                : $this->localTracksForArtist($artistId, 10),
                         ];
                     }
                     throw $e;
+                }
+            }
+        );
+    }
+
+    /**
+     * Spotify market for catalog calls (user country when known).
+     */
+    public function marketForUser(User $user): string
+    {
+        return Cache::remember(
+            "spotify:browse:market:user:{$user->id}",
+            86_400,
+            function () use ($user): string {
+                try {
+                    $connection = $this->spotify->requireConnection($user);
+                    $response = $this->spotify->get($connection, '/me');
+                    $country = $response->json('country');
+                    if (is_string($country) && preg_match('/^[A-Z]{2}$/', $country) === 1) {
+                        return $country;
+                    }
+                } catch (\Throwable) {
+                    // Fall through to regional defaults.
+                }
+
+                return 'ZA';
+            }
+        );
+    }
+
+    /**
+     * Primary artist + up to $maxRelated related artists (1 hop).
+     * Soft-fails on rate limits — never retries upstream fan-out.
+     *
+     * @return list<string>
+     */
+    public function neighborhoodArtistIds(User $user, string $primaryArtistId, int $maxRelated = 5): array
+    {
+        if ($primaryArtistId === '') {
+            return [];
+        }
+
+        $maxRelated = max(0, min(5, $maxRelated));
+        $related = array_slice($this->relatedArtistIds($user, $primaryArtistId), 0, $maxRelated);
+
+        return array_values(array_unique(array_merge([$primaryArtistId], $related)));
+    }
+
+    /**
+     * Related artist Spotify IDs for neighborhood filtering (best-effort).
+     *
+     * @return list<string>
+     */
+    public function relatedArtistIds(User $user, string $artistId): array
+    {
+        if ($artistId === '') {
+            return [];
+        }
+
+        return Cache::remember(
+            "spotify:browse:artist:{$artistId}:related-ids",
+            1800,
+            function () use ($user, $artistId): array {
+                try {
+                    $connection = $this->spotify->requireConnection($user);
+                    $response = $this->spotify->get($connection, '/artists/'.$artistId.'/related-artists');
+                    $items = $response->json('artists') ?? [];
+                    if (! is_array($items)) {
+                        return [];
+                    }
+
+                    $ids = [];
+                    foreach ($items as $artist) {
+                        if (is_array($artist) && is_string($artist['id'] ?? null) && $artist['id'] !== '') {
+                            $ids[] = $artist['id'];
+                        }
+                    }
+
+                    return array_values(array_unique($ids));
+                } catch (IntegrationException $e) {
+                    // Soft-fail on missing catalog / rate limit — empty neighborhood beats a stampede.
+                    if (in_array($e->statusCode, [403, 404, 429], true)) {
+                        return [];
+                    }
+                    throw $e;
+                } catch (\Throwable) {
+                    return [];
                 }
             }
         );

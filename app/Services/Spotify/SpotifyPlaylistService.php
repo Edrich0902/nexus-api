@@ -117,8 +117,8 @@ class SpotifyPlaylistService
     {
         $connection = $this->spotify->requireConnection($user);
         // Spotify has no hard delete endpoint for playlists; unfollow/remove from library.
-        $this->spotify->delete($connection, '/me/library', [
-            'uris' => ["spotify:playlist:{$spotifyId}"],
+        $this->spotify->delete($connection, '/me/library', [], [
+            'uris' => "spotify:playlist:{$spotifyId}",
         ]);
 
         SpotifyPlaylist::query()

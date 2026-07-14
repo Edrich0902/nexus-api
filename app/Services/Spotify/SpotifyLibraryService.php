@@ -17,8 +17,9 @@ class SpotifyLibraryService
     public function save(User $user, array $uris): void
     {
         $connection = $this->spotify->requireConnection($user);
-        $this->spotify->put($connection, '/me/library', [
-            'uris' => array_values($uris),
+        // Spotify PUT/DELETE /me/library require `uris` as a query param (not JSON body).
+        $this->spotify->put($connection, '/me/library', [], [
+            'uris' => implode(',', array_values($uris)),
         ]);
     }
 
@@ -28,8 +29,8 @@ class SpotifyLibraryService
     public function remove(User $user, array $uris): void
     {
         $connection = $this->spotify->requireConnection($user);
-        $this->spotify->delete($connection, '/me/library', [
-            'uris' => array_values($uris),
+        $this->spotify->delete($connection, '/me/library', [], [
+            'uris' => implode(',', array_values($uris)),
         ]);
     }
 

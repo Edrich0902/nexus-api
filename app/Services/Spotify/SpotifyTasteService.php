@@ -12,6 +12,10 @@ use Illuminate\Support\Collection;
 
 class SpotifyTasteService
 {
+    public function __construct(
+        private readonly ListeningProfileService $listeningProfile,
+    ) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -158,6 +162,7 @@ class SpotifyTasteService
 
         $timeOfDay = $this->timeOfDaySkew($user);
         $playSummary = $this->playSummary($user, 7);
+        $audioMetrics = $this->listeningProfile->snapshotMetrics($user);
 
         return [
             'genres' => $genreHistogram,
@@ -171,8 +176,9 @@ class SpotifyTasteService
                 'top_genre' => $genreHistogram[0]['genre'] ?? null,
                 'peak_bucket' => $timeOfDay['peak_bucket'],
             ],
+            'audio_metrics' => $audioMetrics['audio_metrics'],
             'notes' => [
-                'Spotify audio-features and recommendations APIs are unavailable for this app; taste is derived from tops, recent plays, and on-repeat heuristics.',
+                'Audio metrics are sourced from ReccoBeats (not Spotify) and weighted by listen engagement.',
             ],
         ];
     }

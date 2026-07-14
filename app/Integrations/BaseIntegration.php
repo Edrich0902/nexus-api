@@ -199,26 +199,24 @@ abstract class BaseIntegration implements IntegrationInterface
     ): Response {
         $relativePath = ltrim($path, '/');
         $token = $this->ensureValidToken($connection);
-        $this->rateGate->acquire($this->provider());
+        $this->rateGate->acquire($this->provider(), $this->rateGateMaxWaitSeconds());
         $response = $this->sendAuthorized($token, $method, $relativePath, $options);
 
         if ($response->status() === 401) {
             $this->refreshAccessToken($connection->fresh());
             $connection->refresh();
-            $this->rateGate->acquire($this->provider());
+            $this->rateGate->acquire($this->provider(), $this->rateGateMaxWaitSeconds());
             $response = $this->sendAuthorized($connection->access_token, $method, $relativePath, $options);
         }
 
         if ($response->status() === 429) {
-            $retryAfter = max(1, (int) $response->header('Retry-After', 1));
+            // Fail fast — recommendation neighborhood builds catch 429 and return [].
+            // Do not sleep for Retry-After (can be minutes) or park on an exhausted gate.
             $this->rateGate->exhaust($this->provider());
-            usleep($retryAfter * 1_000_000);
-            $this->rateGate->acquire($this->provider());
-            $response = $this->sendAuthorized(
-                $this->ensureValidToken($connection->fresh()),
-                $method,
-                $relativePath,
-                $options,
+            throw IntegrationException::fromHttp(
+                $this->provider(),
+                429,
+                $response->json(),
             );
         }
 
@@ -231,6 +229,13 @@ abstract class BaseIntegration implements IntegrationInterface
         }
 
         return $response;
+    }
+
+    private function rateGateMaxWaitSeconds(): ?int
+    {
+        $maxWait = config('services.rate_limits.'.$this->provider().'.max_wait_seconds');
+
+        return is_numeric($maxWait) ? (int) $maxWait : null;
     }
 
     /**

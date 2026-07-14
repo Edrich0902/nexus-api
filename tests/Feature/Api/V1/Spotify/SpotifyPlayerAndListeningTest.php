@@ -123,19 +123,38 @@ class SpotifyPlayerAndListeningTest extends TestCase
         });
     }
 
-    public function test_library_save_uses_uri_endpoint(): void
+    public function test_library_save_uses_uri_query_parameter(): void
     {
         Http::fake([
-            'api.spotify.com/v1/me/library' => Http::response(null, 200),
+            'api.spotify.com/v1/me/library*' => Http::response(null, 200),
         ]);
 
         $this->putJson('/api/v1/spotify/library', [
             'uris' => ['spotify:track:abc123'],
         ])->assertNoContent();
 
-        Http::assertSent(fn ($request) => $request->url() === 'https://api.spotify.com/v1/me/library'
-            && $request->method() === 'PUT'
-            && $request['uris'] === ['spotify:track:abc123']);
+        Http::assertSent(function ($request) {
+            return str_starts_with($request->url(), 'https://api.spotify.com/v1/me/library')
+                && $request->method() === 'PUT'
+                && str_contains($request->url(), 'uris='.rawurlencode('spotify:track:abc123'));
+        });
+    }
+
+    public function test_library_remove_uses_uri_query_parameter(): void
+    {
+        Http::fake([
+            'api.spotify.com/v1/me/library*' => Http::response(null, 200),
+        ]);
+
+        $this->deleteJson('/api/v1/spotify/library', [
+            'uris' => ['spotify:track:abc123'],
+        ])->assertNoContent();
+
+        Http::assertSent(function ($request) {
+            return str_starts_with($request->url(), 'https://api.spotify.com/v1/me/library')
+                && $request->method() === 'DELETE'
+                && str_contains($request->url(), 'uris='.rawurlencode('spotify:track:abc123'));
+        });
     }
 
     public function test_taste_endpoint_returns_computed_profile(): void

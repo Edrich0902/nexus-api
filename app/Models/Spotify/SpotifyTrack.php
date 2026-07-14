@@ -4,6 +4,7 @@ namespace App\Models\Spotify;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class SpotifyTrack extends Model
 {
@@ -30,5 +31,10 @@ class SpotifyTrack extends Model
     public function recentlyPlayed(): HasMany
     {
         return $this->hasMany(SpotifyRecentlyPlayed::class);
+    }
+
+    public function audioFeatures(): HasOne
+    {
+        return $this->hasOne(TrackAudioFeatures::class);
     }
 }

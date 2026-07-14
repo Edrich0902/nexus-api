@@ -70,6 +70,14 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(40)->by($request->user()?->id ?: $request->ip());
         });
 
+        RateLimiter::for('spotify-listening', function (Request $request) {
+            return Limit::perMinute(90)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('spotify-recommendations', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+        });
+
         RateLimiter::for('github-oauth-callback', function (Request $request) {
             return Limit::perMinute(20)->by($request->ip());
         });

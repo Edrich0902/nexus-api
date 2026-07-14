@@ -66,5 +66,15 @@ Route::prefix('spotify')->group(function (): void {
         Route::get('/top/{type}', [SpotifyListeningController::class, 'top']);
         Route::get('/taste', [SpotifyListeningController::class, 'taste']);
         Route::get('/suggestions', [SpotifyListeningController::class, 'suggestions']);
+
+        Route::middleware('throttle:spotify-listening')->group(function (): void {
+            Route::post('/listening/heartbeat', [SpotifyListeningController::class, 'heartbeat']);
+            Route::get('/listening/profile', [SpotifyListeningController::class, 'listeningProfile']);
+            Route::get('/listening/settings', [SpotifyListeningController::class, 'listeningSettings']);
+            Route::put('/listening/settings', [SpotifyListeningController::class, 'updateListeningSettings']);
+            Route::get('/tracks/{spotifyId}/features', [SpotifyListeningController::class, 'trackFeatures']);
+            Route::get('/recommendations/similar', [SpotifyListeningController::class, 'similarRecommendations'])
+                ->middleware('throttle:spotify-recommendations');
+        });
     });
 });

@@ -40,6 +40,23 @@ return [
         'client_secret' => env('SPOTIFY_CLIENT_SECRET'),
         'redirect' => env('SPOTIFY_REDIRECT_URI', 'http://127.0.0.1:80/spotify/callback'),
         'frontend_redirect' => env('SPOTIFY_FRONTEND_REDIRECT', 'http://nexus.test/spotify'),
+        'listening' => [
+            'engage_progress_ms' => (int) env('SPOTIFY_LISTEN_ENGAGE_MS', 30_000),
+            'engage_ratio' => (float) env('SPOTIFY_LISTEN_ENGAGE_RATIO', 0.25),
+            'full_listen_ratio' => (float) env('SPOTIFY_LISTEN_FULL_RATIO', 0.5),
+            'light_weight' => (float) env('SPOTIFY_LISTEN_LIGHT_WEIGHT', 0.5),
+            'full_weight' => (float) env('SPOTIFY_LISTEN_FULL_WEIGHT', 1.0),
+            'feature_retry_minutes' => (int) env('SPOTIFY_LISTEN_FEATURE_RETRY_MIN', 60),
+            'auto_queue_min_upcoming' => (int) env('SPOTIFY_AUTO_QUEUE_MIN', 3),
+            'auto_queue_batch' => (int) env('SPOTIFY_AUTO_QUEUE_BATCH', 2),
+            // How far back "this listening session" looks for recommendation seeds.
+            'session_window_minutes' => (int) env('SPOTIFY_LISTEN_SESSION_WINDOW_MIN', 45),
+        ],
+    ],
+
+    'reccobeats' => [
+        'base_url' => env('RECCOBEATS_BASE_URL', 'https://api.reccobeats.com'),
+        'timeout' => (int) env('RECCOBEATS_TIMEOUT', 12),
     ],
 
     'github' => [
@@ -66,6 +83,14 @@ return [
         'spotify' => [
             'max_attempts' => (int) env('SPOTIFY_RATE_MAX', 90),
             'decay_seconds' => (int) env('SPOTIFY_RATE_DECAY', 60),
+            // Fail fast after a 429 exhaust so recommendation fan-out cannot park for 90s.
+            'max_wait_seconds' => (int) env('SPOTIFY_RATE_MAX_WAIT', 2),
+        ],
+        'reccobeats' => [
+            'max_attempts' => (int) env('RECCOBEATS_RATE_MAX', 30),
+            'decay_seconds' => (int) env('RECCOBEATS_RATE_DECAY', 60),
+            // Allow a short wait instead of failing recs immediately after a features call.
+            'max_wait_seconds' => (int) env('RECCOBEATS_RATE_MAX_WAIT', 8),
         ],
         'github' => [
             'max_attempts' => (int) env('GITHUB_RATE_MAX', 50),
