@@ -1,6 +1,9 @@
 <?php
 
 use App\Jobs\Github\SyncAllGithubUsersJob;
+use App\Jobs\F1\SyncF1ChampionshipJob;
+use App\Jobs\F1\SyncF1SeasonJob;
+use App\Jobs\F1\SyncF1SessionDetailJob;
 use App\Jobs\Sports\SyncFootballStandingsJob;
 use App\Jobs\Sports\SyncSportsDayJob;
 use App\Jobs\Sports\SyncSportsFixturesJob;
@@ -37,4 +40,20 @@ Schedule::job(new SyncFootballStandingsJob)
 
 Schedule::job(new SyncSportsLeaguesJob)
     ->dailyAt('04:10')
+    ->withoutOverlapping(30);
+
+/*
+ * F1 / OpenF1: historical free tier only — schedule stays light.
+ * Live session windows are not polled (paid).
+ */
+Schedule::job(new SyncF1SeasonJob)
+    ->dailyAt('00:20')
+    ->withoutOverlapping(30);
+
+Schedule::job(new SyncF1ChampionshipJob)
+    ->dailyAt('00:35')
+    ->withoutOverlapping(30);
+
+Schedule::job(new SyncF1SessionDetailJob)
+    ->hourly()
     ->withoutOverlapping(30);

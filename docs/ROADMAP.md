@@ -113,7 +113,7 @@ Only if there is a clear personal-hub use case and a viable API path. Treat as e
 - [x] Upstream rate gate shared with Spotify/GitHub HTTP
 - [x] Scheduler sync → `sports_*` tables; DB-backed `/api/v1/sports/*`
 - [x] Sports Hub sidebar + sport pages + home pulse/snapshot cards
-- [ ] F1 via official F1 API (separate module)
+- [x] F1 via OpenF1 free/historical module (`/api/v1/f1/*`) — calendar, standings, post-session analysis & downsampled replay (no live tracking)
 
 ---
 

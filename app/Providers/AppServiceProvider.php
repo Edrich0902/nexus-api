@@ -105,6 +105,14 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('sports-read', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
+
+        RateLimiter::for('f1-sync', function (Request $request) {
+            return Limit::perMinute(6)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('f1-read', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
     }
 
     private function configureHttps(): void

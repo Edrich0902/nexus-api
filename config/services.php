@@ -96,6 +96,31 @@ return [
             'max_attempts' => (int) env('GITHUB_RATE_MAX', 50),
             'decay_seconds' => (int) env('GITHUB_RATE_DECAY', 60),
         ],
+        'openf1' => [
+            // Free tier ~30 req/min — stay under and fail-fast in jobs.
+            'max_attempts' => (int) env('OPENF1_RATE_MAX', 25),
+            'decay_seconds' => (int) env('OPENF1_RATE_DECAY', 60),
+            'max_wait_seconds' => (int) env('OPENF1_RATE_MAX_WAIT', 0),
+        ],
+    ],
+
+    'openf1' => [
+        'base_url' => env('OPENF1_BASE_URL', 'https://api.openf1.org/v1'),
+        'timeout' => (int) env('OPENF1_TIMEOUT', 20),
+        'sync' => [
+            'rate_limit_release_seconds' => (int) env('OPENF1_RATE_RELEASE', 45),
+            'queue' => env('OPENF1_SYNC_QUEUE', 'default'),
+            // Minutes after session end before treating data as historical (free tier).
+            'live_buffer_minutes' => (int) env('OPENF1_LIVE_BUFFER_MIN', 35),
+            // Keep location sparse — enough for a scrubbable map without OOMing the worker/browser.
+            'location_hz' => (float) env('OPENF1_LOCATION_HZ', 0.25),
+            'car_data_hz' => (float) env('OPENF1_CAR_DATA_HZ', 1.0),
+            // Per-driver windows (single car is small enough for multi-minute slices).
+            'telemetry_chunk_seconds' => (int) env('OPENF1_TELEMETRY_CHUNK_SEC', 180),
+            'replay_max_drivers' => (int) env('OPENF1_REPLAY_MAX_DRIVERS', 6),
+            // Must exceed one SyncF1ReplayJob timeout so a live worker is not marked failed.
+            'replay_stale_pending_seconds' => (int) env('OPENF1_REPLAY_STALE_SEC', 900),
+        ],
     ],
 
     'sportsdb' => [

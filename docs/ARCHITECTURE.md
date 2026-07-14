@@ -39,7 +39,7 @@ Each module is a vertical slice: migrations, models, services, jobs, and API rou
 | Kitchen | `/api/v1/kitchen/*` | Recipes |
 | Media vaults | `/api/v1/media/*` (TBD) | Personal media libraries |
 | Social | TBD | Optional (e.g. Instagram) |
-| Sports / F1 | `/api/v1/sports/*`, `/api/v1/f1/*` | Schedules, standings, ticker |
+| Sports / F1 | `/api/v1/sports/*`, `/api/v1/f1/*` | Schedules, standings, ticker; F1 historical OpenF1 |
 
 ### Route & code layout
 
@@ -116,6 +116,21 @@ Sports (TheSportsDB) specifically:
 
 - `sports-sync` 6/min
 - `sports-read` 60/min
+
+### F1 / OpenF1 (historical free tier)
+
+| Concern | Approach |
+|---------|----------|
+| Auth | None for historical OpenF1 — proxied only via Laravel |
+| Live | Not supported on free tier (30 min before → 30 min after session is paid) |
+| Sync | Tier A daily meetings/sessions + championship; Tier B hourly pending session detail; Tier C lazy downsampled location/car_data on replay |
+| Upstream gate | `openf1` ~25/min, `max_wait_seconds=0` → job release |
+| Reads | `GET /api/v1/f1/*` from `f1_*` tables / snapshots |
+
+### Rate limiting (F1)
+
+- `f1-sync` 6/min
+- `f1-read` 60/min
 
 ### Upstream rate gates (all providers)
 
@@ -227,7 +242,10 @@ GITHUB_PRIVATE_KEY=
 GITHUB_REDIRECT_URI=http://127.0.0.1:80/github/callback
 GITHUB_FRONTEND_REDIRECT=http://nexus.test/github
 
-# Sports / F1 (when prioritized)
+# Sports / F1
+SPORTSDB_API_KEY=
+OPENF1_BASE_URL=https://api.openf1.org/v1
+OPENF1_RATE_MAX=25
+# Live OpenF1 requires a paid subscription; Nexus free module is historical only.
 F1_API_KEY=
-SPORTS_API_KEY=
 ```
