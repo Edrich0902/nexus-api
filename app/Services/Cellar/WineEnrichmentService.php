@@ -12,12 +12,14 @@ use App\Models\WineCatalog\WineCatalogRegion;
 use App\Models\WineCatalog\WineCatalogScore;
 use App\Models\WineCatalog\WineCatalogWine;
 use App\Models\WineCatalog\WineCatalogWinery;
+use App\Services\Media\MediaMirrorService;
 use Illuminate\Support\Facades\DB;
 
 class WineEnrichmentService
 {
     public function __construct(
         private readonly WineApiIntegration $wineApi,
+        private readonly MediaMirrorService $mediaMirrors,
     ) {}
 
     /**
@@ -68,6 +70,8 @@ class WineEnrichmentService
         $catalog->enrichment_status = WineCatalogWine::ENRICHMENT_COMPLETE;
         $catalog->enriched_at = now();
         $catalog->save();
+
+        $this->mediaMirrors->queueWineCatalogMirror($catalog->fresh() ?? $catalog);
 
         return ['status' => 'complete', 'retry_after' => null];
     }

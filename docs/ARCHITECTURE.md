@@ -39,7 +39,7 @@ Each module is a vertical slice: migrations, models, services, jobs, and API rou
 | Kitchen | `/api/v1/kitchen/*` | TheMealDB recipe imports |
 | Beer | `/api/v1/beer/*` | Beer log + Open Brewery DB / manual breweries |
 | Library | `/api/v1/library/*` (future) | Book collection |
-| Media vaults | `/api/v1/media/*` (TBD) | Personal media libraries |
+| Media | `/api/v1/media/*` | Cloudinary media vault, uploads, mirroring |
 | Social | TBD | Optional (e.g. Instagram) |
 | Sports / F1 | `/api/v1/sports/*`, `/api/v1/f1/*` | Schedules, standings, ticker; F1 historical OpenF1 |
 
@@ -164,7 +164,23 @@ Sanctum global `expiration` stays `null`; each token sets its own `expires_at`:
 
 ### Profile
 
-- `PATCH /api/v1/auth/profile` — update the authenticated user’s `name` (required string, max 255). Returns `UserResource`. Email change and avatar upload are deferred.
+- `PATCH /api/v1/auth/profile` — update the authenticated user’s `name` (required string, max 255). Returns `UserResource` (includes `media` cover payload when set).
+- Avatar upload uses the generic media module: `POST /api/v1/media` with `collection=avatar` and `attach_to={type:user,id}`.
+
+## Media (Cloudinary)
+
+All binary uploads go through Nexus API (never direct browser → Cloudinary).
+
+| Concern | Approach |
+|---------|----------|
+| Credentials | `CLOUDINARY_CLOUD_NAME` / `API_KEY` / `API_SECRET` — API only |
+| Folders | `nexus/{env}/users/{userId}/{collection}/{ulid}` and `nexus/{env}/mirror/{provider}/{key}` |
+| Transforms | Incoming size cap on upload; named delivery transforms (`nexus_thumb|card|hero|avatar`); no eager |
+| Attach | Morph aliases in `config/media.php` + denormalised cover columns |
+| Mirroring | WineAPI + MealDB-on-save + Unsplash; Spotify/GitHub never |
+| Usage | `GET /api/v1/media/usage` (Admin API, cached 30m) |
+
+Throttle: `media-read` 60/min, `media-write` 20/min, `media-upload` 10/min, `media-unsplash` 20/min.
 
 ### Sessions / devices
 
@@ -250,4 +266,14 @@ OPENF1_BASE_URL=https://api.openf1.org/v1
 OPENF1_RATE_MAX=25
 # Live OpenF1 requires a paid subscription; Nexus free module is historical only.
 F1_API_KEY=
+
+# Cloudinary (secrets API-only — never log)
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+MEDIA_ENV=local
+
+# Unsplash (NexusImageUploader search)
+UNSPLASH_ACCESS_KEY=
+UNSPLASH_SECRET_KEY=
 ```

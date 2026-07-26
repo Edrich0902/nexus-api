@@ -4,6 +4,7 @@ namespace App\Services\Cellar;
 
 use App\Models\Cellar\CellarWine;
 use App\Models\User;
+use App\Services\FoodDrink\FoodDrinkDashboardService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
@@ -47,7 +48,7 @@ class CellarWineService
     {
         $this->assertValidRating($data['rating'] ?? null);
 
-        return CellarWine::query()->create([
+        $wine = CellarWine::query()->create([
             'user_id' => $user->id,
             'producer_name' => $data['producer_name'] ?? null,
             'name' => $data['name'],
@@ -59,6 +60,10 @@ class CellarWineService
             'notes' => $data['notes'] ?? null,
             'match_status' => CellarWine::MATCH_UNMATCHED,
         ]);
+
+        FoodDrinkDashboardService::forget($user);
+
+        return $wine;
     }
 
     public function findOwned(User $user, int $wineId): CellarWine
@@ -102,6 +107,7 @@ class CellarWineService
             'notes',
         ])));
         $wine->save();
+        FoodDrinkDashboardService::forget($user);
 
         return $wine->fresh([
             'catalogWine.winery',
@@ -115,6 +121,7 @@ class CellarWineService
     {
         $this->assertOwned($user, $wine);
         $wine->delete();
+        FoodDrinkDashboardService::forget($user);
     }
 
     public function assertOwned(User $user, CellarWine $wine): void

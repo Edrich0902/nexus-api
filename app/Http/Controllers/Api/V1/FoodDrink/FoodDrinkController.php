@@ -11,7 +11,6 @@ use App\Services\FoodDrink\RecommendationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\Cache;
 
 class FoodDrinkController extends Controller
 {
@@ -38,7 +37,7 @@ class FoodDrinkController extends Controller
     public function storePairing(StorePairingRequest $request): JsonResponse
     {
         $pairing = $this->pairings->create($request->user(), $request->validated());
-        Cache::forget("food-drink:dashboard:{$request->user()->id}");
+        FoodDrinkDashboardService::forget($request->user());
 
         return (new FoodDrinkPairingResource($pairing))
             ->response()
@@ -48,7 +47,7 @@ class FoodDrinkController extends Controller
     public function destroyPairing(Request $request, int $pairing): JsonResponse
     {
         $this->pairings->delete($request->user(), $pairing);
-        Cache::forget("food-drink:dashboard:{$request->user()->id}");
+        FoodDrinkDashboardService::forget($request->user());
 
         return response()->json(['message' => 'Pairing deleted.']);
     }

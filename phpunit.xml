@@ -32,5 +32,11 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="MEDIA_MIRROR_WINEAPI" value="false"/>
+        <env name="MEDIA_MIRROR_MEALDB" value="false"/>
+        <env name="MEDIA_MIRROR_UNSPLASH" value="false"/>
+        <env name="CLOUDINARY_CLOUD_NAME" value=""/>
+        <env name="CLOUDINARY_API_KEY" value=""/>
+        <env name="CLOUDINARY_API_SECRET" value=""/>
     </php>
 </phpunit>

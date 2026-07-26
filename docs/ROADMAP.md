@@ -115,7 +115,17 @@ Only if there is a clear personal-hub use case and a viable API path. Treat as e
 
 ## Milestone 4 — Media vaults
 
-**Intent:** Personal media libraries / vault surfaces backed by the API (storage strategy TBD at kickoff — local, object storage, or hybrid).
+**Intent:** Personal media libraries / vault surfaces backed by Cloudinary.
+
+**Done (M4)**
+
+- [x] Generic `/api/v1/media/*` (upload, from-url, attach, vault, usage, reconcile, Unsplash)
+- [x] Cloudinary folders under `nexus/{env}/…`; named transforms; no eager
+- [x] `NexusImageUploader` + media-aware `NexusImage` / `NexusAvatar`
+- [x] Media vault UI at `/media` with usage meters
+- [x] Cover images on users, cellar, kitchen, beer; WineAPI + MealDB mirroring
+
+Kickoff: [M4-MEDIA-KICKOFF.md](M4-MEDIA-KICKOFF.md)
 
 ---
 

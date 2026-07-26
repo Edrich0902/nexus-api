@@ -2,8 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\Beer\BeerBeer;
+use App\Models\Cellar\CellarWine;
+use App\Models\Kitchen\KitchenRecipe;
 use App\Models\PersonalAccessToken;
+use App\Models\User;
+use App\Models\WineCatalog\WineCatalogWine;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\App;
@@ -29,6 +35,14 @@ class AppServiceProvider extends ServiceProvider
     {
         JsonResource::withoutWrapping();
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+
+        Relation::enforceMorphMap([
+            'user' => User::class,
+            'cellar_wine' => CellarWine::class,
+            'kitchen_recipe' => KitchenRecipe::class,
+            'beer_beer' => BeerBeer::class,
+            'wine_catalog_wine' => WineCatalogWine::class,
+        ]);
 
         $this->configureRateLimiting();
         $this->configureHttps();
@@ -152,6 +166,22 @@ class AppServiceProvider extends ServiceProvider
 
         RateLimiter::for('food-drink-read', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('media-read', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('media-write', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('media-upload', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('media-unsplash', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
         });
     }
 

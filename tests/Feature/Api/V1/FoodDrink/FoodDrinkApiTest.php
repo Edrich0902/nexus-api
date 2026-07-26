@@ -42,7 +42,20 @@ class FoodDrinkApiTest extends TestCase
         $this->getJson('/api/v1/food-drink/dashboard')
             ->assertOk()
             ->assertJsonPath('counts.wines', 1)
-            ->assertJsonPath('counts.recipes', 1);
+            ->assertJsonPath('counts.recipes', 1)
+            ->assertJsonPath('recent_wines.0.id', $wine->id)
+            ->assertJsonPath('recent_wines.0.name', $wine->name)
+            ->assertJsonStructure([
+                'recent_wines' => [['id', 'name', 'media', 'image_url']],
+                'recent_beers',
+                'top_recipes' => [['id', 'media', 'image_url']],
+            ]);
+
+        // Cached response must stay plain arrays (no __PHP_Incomplete_Class).
+        $this->getJson('/api/v1/food-drink/dashboard')
+            ->assertOk()
+            ->assertJsonPath('recent_wines.0.id', $wine->id)
+            ->assertJsonCount(1, 'recent_wines');
 
         $pairingId = $this->postJson('/api/v1/food-drink/pairings', [
             'drinkable_type' => 'wine',

@@ -21,6 +21,8 @@ class BeerBeerResource extends JsonResource
             'format' => $this->format,
             'rating' => $this->rating,
             'notes' => $this->notes,
+            'media' => $this->mediaImagePayload(),
+            'image_url' => $this->resolvedImageUrl(),
             'brewery' => $this->whenLoaded('brewery', fn () => $this->brewery ? [
                 'id' => $this->brewery->id,
                 'name' => $this->brewery->name,

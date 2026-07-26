@@ -24,6 +24,11 @@ class CellarWineResource extends JsonResource
             'rating' => $this->rating,
             'notes' => $this->notes,
             'match_status' => $this->match_status,
+            'media' => $this->mediaImagePayload(),
+            'image_url' => $this->resolvedImageUrl()
+                ?? ($this->relationLoaded('catalogWine')
+                    ? $this->catalogWine?->resolvedImageUrl('image_url')
+                    : null),
             'tastings_count' => $this->when(isset($this->tastings_count), $this->tastings_count),
             'catalog' => $this->whenLoaded('catalogWine', function () {
                 if ($this->catalogWine === null) {
@@ -39,7 +44,8 @@ class CellarWineResource extends JsonResource
                     'body' => $this->catalogWine->body,
                     'acidity' => $this->catalogWine->acidity,
                     'description' => $this->catalogWine->description,
-                    'image_url' => $this->catalogWine->image_url,
+                    'image_url' => $this->catalogWine->resolvedImageUrl('image_url'),
+                    'media' => $this->catalogWine->mediaImagePayload(),
                     'average_rating' => $this->catalogWine->average_rating,
                     'enrichment_status' => $this->catalogWine->enrichment_status,
                     'enriched_at' => $this->catalogWine->enriched_at?->toIso8601String(),

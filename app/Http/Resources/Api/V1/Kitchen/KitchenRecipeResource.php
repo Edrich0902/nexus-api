@@ -21,6 +21,9 @@ class KitchenRecipeResource extends JsonResource
             'cooked_count' => $this->cooked_count,
             'last_cooked_on' => $this->last_cooked_on?->toDateString(),
             'is_favourite' => $this->is_favourite,
+            'media' => $this->mediaImagePayload(),
+            'image_url' => $this->resolvedImageUrl()
+                ?? ($this->relationLoaded('meal') ? $this->meal?->thumb_url : null),
             'meal' => $this->whenLoaded('meal', function () {
                 if ($this->meal === null) {
                     return null;

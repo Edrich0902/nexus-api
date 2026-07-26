@@ -2,6 +2,7 @@
 
 namespace App\Models\Kitchen;
 
+use App\Models\Concerns\HasCoverImage;
 use App\Models\MealCatalog\MealCatalogMeal;
 use App\Models\User;
 use Database\Factories\KitchenRecipeFactory;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class KitchenRecipe extends Model
 {
     /** @use HasFactory<KitchenRecipeFactory> */
+    use HasCoverImage;
     use HasFactory;
     use SoftDeletes;
 
@@ -21,6 +23,9 @@ class KitchenRecipe extends Model
     protected $fillable = [
         'user_id',
         'meal_catalog_meal_id',
+        'media_asset_id',
+        'media_public_id',
+        'media_url',
         'source',
         'rating',
         'notes',

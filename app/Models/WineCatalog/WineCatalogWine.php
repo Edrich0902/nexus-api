@@ -2,6 +2,7 @@
 
 namespace App\Models\WineCatalog;
 
+use App\Models\Concerns\HasCoverImage;
 use Database\Factories\WineCatalogWineFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class WineCatalogWine extends Model
 {
     /** @use HasFactory<WineCatalogWineFactory> */
+    use HasCoverImage;
     use HasFactory;
 
     public const ENRICHMENT_PENDING = 'pending';
@@ -44,6 +46,9 @@ class WineCatalogWine extends Model
         'description',
         'lwin_code',
         'image_url',
+        'media_asset_id',
+        'media_public_id',
+        'media_url',
         'enrichment_status',
         'enriched_at',
         'enrichment_attempts',

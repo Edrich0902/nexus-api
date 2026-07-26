@@ -2,6 +2,7 @@
 
 namespace App\Models\Beer;
 
+use App\Models\Concerns\HasCoverImage;
 use App\Models\User;
 use Database\Factories\BeerBeerFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class BeerBeer extends Model
 {
     /** @use HasFactory<BeerBeerFactory> */
+    use HasCoverImage;
     use HasFactory;
     use SoftDeletes;
 
@@ -19,6 +21,9 @@ class BeerBeer extends Model
         'user_id',
         'beer_brewery_id',
         'beer_style_id',
+        'media_asset_id',
+        'media_public_id',
+        'media_url',
         'name',
         'abv',
         'ibu',

@@ -5,6 +5,7 @@ namespace App\Services\Beer;
 use App\Models\Beer\BeerBeer;
 use App\Models\Beer\BeerStyle;
 use App\Models\User;
+use App\Services\FoodDrink\FoodDrinkDashboardService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -42,7 +43,7 @@ class BeerService
     {
         $this->assertValidRating($data['rating'] ?? null);
 
-        return BeerBeer::query()->create([
+        $beer = BeerBeer::query()->create([
             'user_id' => $user->id,
             'beer_brewery_id' => $data['beer_brewery_id'] ?? null,
             'beer_style_id' => $data['beer_style_id'] ?? null,
@@ -53,6 +54,10 @@ class BeerService
             'rating' => $data['rating'] ?? null,
             'notes' => $data['notes'] ?? null,
         ])->load(['brewery', 'style']);
+
+        FoodDrinkDashboardService::forget($user);
+
+        return $beer;
     }
 
     public function findOwned(User $user, int $beerId): BeerBeer
@@ -88,6 +93,7 @@ class BeerService
             'notes',
         ])));
         $beer->save();
+        FoodDrinkDashboardService::forget($user);
 
         return $beer->fresh(['brewery', 'style']) ?? $beer;
     }
@@ -96,6 +102,7 @@ class BeerService
     {
         $this->assertOwned($user, $beer);
         $beer->delete();
+        FoodDrinkDashboardService::forget($user);
     }
 
     /**

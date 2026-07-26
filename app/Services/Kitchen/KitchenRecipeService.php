@@ -4,6 +4,8 @@ namespace App\Services\Kitchen;
 
 use App\Models\Kitchen\KitchenRecipe;
 use App\Models\User;
+use App\Services\FoodDrink\FoodDrinkDashboardService;
+use App\Services\Media\MediaMirrorService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
@@ -11,6 +13,7 @@ class KitchenRecipeService
 {
     public function __construct(
         private readonly MealCatalogService $catalog,
+        private readonly MediaMirrorService $mediaMirrors,
     ) {}
 
     /**
@@ -57,7 +60,19 @@ class KitchenRecipeService
         }
         $recipe->save();
 
-        return $recipe->fresh(['meal.ingredients']) ?? $recipe;
+        $recipe = $recipe->fresh(['meal.ingredients']) ?? $recipe;
+        if ($recipe->meal !== null && is_string($recipe->meal->thumb_url) && $recipe->meal->thumb_url !== '') {
+            $this->mediaMirrors->queueMealdbMirror(
+                $recipe,
+                $recipe->meal->thumb_url,
+                (string) $recipe->meal->mealdb_id,
+                $user,
+            );
+        }
+
+        FoodDrinkDashboardService::forget($user);
+
+        return $recipe;
     }
 
     public function findOwned(User $user, int $recipeId): KitchenRecipe
@@ -88,6 +103,7 @@ class KitchenRecipeService
             'is_favourite',
         ])));
         $recipe->save();
+        FoodDrinkDashboardService::forget($user);
 
         return $recipe->fresh(['meal.ingredients']) ?? $recipe;
     }
@@ -98,6 +114,7 @@ class KitchenRecipeService
         $recipe->cooked_count = (int) $recipe->cooked_count + 1;
         $recipe->last_cooked_on = now()->toDateString();
         $recipe->save();
+        FoodDrinkDashboardService::forget($user);
 
         return $recipe->fresh(['meal.ingredients']) ?? $recipe;
     }
@@ -106,6 +123,7 @@ class KitchenRecipeService
     {
         $this->assertOwned($user, $recipe);
         $recipe->delete();
+        FoodDrinkDashboardService::forget($user);
     }
 
     public function assertOwned(User $user, KitchenRecipe $recipe): void

@@ -16,9 +16,9 @@ class FoodDrinkPairingResource extends JsonResource
     public function toArray(Request $request): array
     {
         $drinkableType = 'unknown';
-        if ($this->drinkable_type === CellarWine::class) {
+        if ($this->drinkable_type === CellarWine::class || $this->drinkable_type === 'cellar_wine') {
             $drinkableType = 'wine';
-        } elseif ($this->drinkable_type === BeerBeer::class) {
+        } elseif ($this->drinkable_type === BeerBeer::class || $this->drinkable_type === 'beer_beer') {
             $drinkableType = 'beer';
         }
 

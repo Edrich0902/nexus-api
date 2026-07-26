@@ -2,6 +2,7 @@
 
 namespace App\Models\Cellar;
 
+use App\Models\Concerns\HasCoverImage;
 use App\Models\User;
 use App\Models\WineCatalog\WineCatalogWine;
 use Database\Factories\CellarWineFactory;
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class CellarWine extends Model
 {
     /** @use HasFactory<CellarWineFactory> */
+    use HasCoverImage;
     use HasFactory;
     use SoftDeletes;
 
@@ -32,6 +34,9 @@ class CellarWine extends Model
     protected $fillable = [
         'user_id',
         'wine_catalog_wine_id',
+        'media_asset_id',
+        'media_public_id',
+        'media_url',
         'producer_name',
         'name',
         'vintage',

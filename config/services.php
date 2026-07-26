@@ -118,6 +118,16 @@ return [
             'decay_seconds' => (int) env('OPENBREWERYDB_RATE_DECAY', 60),
             'max_wait_seconds' => (int) env('OPENBREWERYDB_RATE_MAX_WAIT', 5),
         ],
+        'cloudinary' => [
+            'max_attempts' => (int) env('CLOUDINARY_RATE_MAX', 60),
+            'decay_seconds' => (int) env('CLOUDINARY_RATE_DECAY', 60),
+            'max_wait_seconds' => (int) env('CLOUDINARY_RATE_MAX_WAIT', 5),
+        ],
+        'unsplash' => [
+            'max_attempts' => (int) env('UNSPLASH_RATE_MAX', 40),
+            'decay_seconds' => (int) env('UNSPLASH_RATE_DECAY', 60),
+            'max_wait_seconds' => (int) env('UNSPLASH_RATE_MAX_WAIT', 2),
+        ],
     ],
 
     'wineapi' => [
