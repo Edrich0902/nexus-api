@@ -12,7 +12,7 @@ Roadmap: [ROADMAP.md](ROADMAP.md) · Architecture: [ARCHITECTURE.md](ARCHITECTUR
 | Catalog | Global `library_catalog_books` keyed by Open Library work id |
 | Match | User-confirmed only — candidates → confirm / no-match / clear |
 | Covers | Open Library cover URLs; mirror into Cloudinary on match when media mirroring is enabled |
-| Web | `/library` list + detail + match dialog |
+| Web | `/library` list + detail + match dialog; home pulse + command brief chip |
 
 ## Decisions
 
@@ -25,6 +25,7 @@ Roadmap: [ROADMAP.md](ROADMAP.md) · Architecture: [ARCHITECTURE.md](ARCHITECTUR
 ## Key routes
 
 ```
+GET    /api/v1/library/pulse
 GET    /api/v1/library/books
 POST   /api/v1/library/books
 GET    /api/v1/library/books/{id}
@@ -38,7 +39,7 @@ DELETE /api/v1/library/books/{id}/match
 POST   /api/v1/library/books/from-catalog
 ```
 
-Web: `/library`, `/library/books/:bookId`.
+Web: `/library`, `/library/books/:bookId`, home library pulse + Today command brief.
 
 ## Env
 
@@ -49,4 +50,3 @@ See `.env.example` for `OPENLIBRARY_*`. No API key required for public search/co
 - Barcode / camera intake (mobile later)
 - Google Books dual-wire
 - Reading session timeline
-- Home pulse widget

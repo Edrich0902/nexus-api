@@ -97,6 +97,7 @@ Local redirect URI: `http://127.0.0.1:80/spotify/callback` (exact match in Spoti
 - [x] Open Library search + user-confirmed match / enrichment
 - [x] Cover mirroring via media platform
 - [x] Web: `/library` list + detail + match dialog
+- [x] Home library pulse (`GET /api/v1/library/pulse`)
 
 ---
 

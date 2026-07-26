@@ -33,6 +33,17 @@ class LibraryController extends Controller
         );
     }
 
+    public function pulse(Request $request): JsonResponse
+    {
+        $payload = $this->books->pulse($request->user());
+
+        return response()->json([
+            'counts' => $payload['counts'],
+            'reading' => LibraryBookResource::collection($payload['reading'])->resolve(),
+            'recent' => LibraryBookResource::collection($payload['recent'])->resolve(),
+        ]);
+    }
+
     public function store(StoreLibraryBookRequest $request): JsonResponse
     {
         $book = $this->books->create($request->user(), $request->validated());

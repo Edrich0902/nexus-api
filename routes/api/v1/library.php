@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('library')->middleware('auth:sanctum')->group(function (): void {
     Route::get('/search', [LibraryController::class, 'search'])
         ->middleware('throttle:library-search');
+    Route::get('/pulse', [LibraryController::class, 'pulse'])
+        ->middleware('throttle:library-read');
 
     Route::get('/books', [LibraryController::class, 'index'])
         ->middleware('throttle:library-read');

@@ -112,6 +112,50 @@ class LibraryBookService
         $book->delete();
     }
 
+    /**
+     * @return array{
+     *   counts: array{want: int, reading: int, read: int, total: int},
+     *   reading: list<\App\Models\Library\LibraryBook>,
+     *   recent: list<\App\Models\Library\LibraryBook>
+     * }
+     */
+    public function pulse(User $user): array
+    {
+        $base = LibraryBook::query()->where('user_id', $user->id);
+
+        $want = (clone $base)->where('status', LibraryBook::STATUS_WANT)->count();
+        $reading = (clone $base)->where('status', LibraryBook::STATUS_READING)->count();
+        $read = (clone $base)->where('status', LibraryBook::STATUS_READ)->count();
+
+        $readingBooks = LibraryBook::query()
+            ->where('user_id', $user->id)
+            ->where('status', LibraryBook::STATUS_READING)
+            ->with(['catalogBook'])
+            ->orderByDesc('updated_at')
+            ->limit(3)
+            ->get()
+            ->all();
+
+        $recentBooks = LibraryBook::query()
+            ->where('user_id', $user->id)
+            ->with(['catalogBook'])
+            ->orderByDesc('updated_at')
+            ->limit(4)
+            ->get()
+            ->all();
+
+        return [
+            'counts' => [
+                'want' => $want,
+                'reading' => $reading,
+                'read' => $read,
+                'total' => $want + $reading + $read,
+            ],
+            'reading' => $readingBooks,
+            'recent' => $recentBooks,
+        ];
+    }
+
     public function assertOwned(User $user, LibraryBook $book): void
     {
         if ((int) $book->user_id !== (int) $user->id) {

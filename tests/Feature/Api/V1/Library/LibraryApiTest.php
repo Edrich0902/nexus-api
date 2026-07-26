@@ -178,4 +178,35 @@ class LibraryApiTest extends TestCase
             'rating' => 4.25,
         ])->assertStatus(422);
     }
+
+    public function test_library_pulse(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        LibraryBook::factory()->create([
+            'user_id' => $user->id,
+            'title' => 'Want Book',
+            'status' => LibraryBook::STATUS_WANT,
+        ]);
+        LibraryBook::factory()->create([
+            'user_id' => $user->id,
+            'title' => 'Reading Now',
+            'status' => LibraryBook::STATUS_READING,
+        ]);
+        LibraryBook::factory()->create([
+            'user_id' => $user->id,
+            'title' => 'Finished Book',
+            'status' => LibraryBook::STATUS_READ,
+        ]);
+
+        $this->getJson('/api/v1/library/pulse')
+            ->assertOk()
+            ->assertJsonPath('counts.want', 1)
+            ->assertJsonPath('counts.reading', 1)
+            ->assertJsonPath('counts.read', 1)
+            ->assertJsonPath('counts.total', 3)
+            ->assertJsonPath('reading.0.title', 'Reading Now')
+            ->assertJsonCount(3, 'recent');
+    }
 }
