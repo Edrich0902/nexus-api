@@ -85,7 +85,18 @@ Local redirect URI: `http://127.0.0.1:80/spotify/callback` (exact match in Spoti
 
 ### Deferred
 
-- Library (books), FastCork/photo intake, own-recipe authoring, image mirroring to object storage
+- FastCork/photo intake, own-recipe authoring
+
+---
+
+## Milestone 2.1 — Book library
+
+**Intent:** Personal book shelf with read status and Open Library catalog match. See [M-LIBRARY-KICKOFF.md](M-LIBRARY-KICKOFF.md).
+
+- [x] Shelf CRUD (`want` / `reading` / `read`, rating, notes, dates)
+- [x] Open Library search + user-confirmed match / enrichment
+- [x] Cover mirroring via media platform
+- [x] Web: `/library` list + detail + match dialog
 
 ---
 

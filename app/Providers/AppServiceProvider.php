@@ -5,6 +5,8 @@ namespace App\Providers;
 use App\Models\Beer\BeerBeer;
 use App\Models\Cellar\CellarWine;
 use App\Models\Kitchen\KitchenRecipe;
+use App\Models\Library\LibraryBook;
+use App\Models\LibraryCatalog\LibraryCatalogBook;
 use App\Models\PersonalAccessToken;
 use App\Models\User;
 use App\Models\WineCatalog\WineCatalogWine;
@@ -41,6 +43,8 @@ class AppServiceProvider extends ServiceProvider
             'cellar_wine' => CellarWine::class,
             'kitchen_recipe' => KitchenRecipe::class,
             'beer_beer' => BeerBeer::class,
+            'library_book' => LibraryBook::class,
+            'library_catalog_book' => LibraryCatalogBook::class,
             'wine_catalog_wine' => WineCatalogWine::class,
         ]);
 
@@ -161,6 +165,18 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('brewery-search', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('library-read', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('library-write', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('library-search', function (Request $request) {
             return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
         });
 

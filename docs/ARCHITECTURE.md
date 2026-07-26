@@ -38,7 +38,7 @@ Each module is a vertical slice: migrations, models, services, jobs, and API rou
 | Cellar | `/api/v1/cellar/*` | Wine drinking journal + WineAPI enrichment |
 | Kitchen | `/api/v1/kitchen/*` | TheMealDB recipe imports |
 | Beer | `/api/v1/beer/*` | Beer log + Open Brewery DB / manual breweries |
-| Library | `/api/v1/library/*` (future) | Book collection |
+| Library | `/api/v1/library/*` | Book shelf + Open Library catalog match |
 | Media | `/api/v1/media/*` | Cloudinary media vault, uploads, mirroring |
 | Social | TBD | Optional (e.g. Instagram) |
 | Sports / F1 | `/api/v1/sports/*`, `/api/v1/f1/*` | Schedules, standings, ticker; F1 historical OpenF1 |
@@ -55,7 +55,9 @@ HTTP flow: **Form Request → Controller → Service → API Resource**. Control
 
 ### Food & Drink note
 
-Wine is a **journal** (tastings), not bottle inventory. WineAPI calls go through `UpstreamDailyBudget` (100/day) with search headroom reserved for enrichment. Catalog tables are global; user cellar/kitchen/beer rows are ownership-scoped with soft deletes. Keyless/API-key providers use `ProviderHttpClient` + `UpstreamRateGate` (WineAPI, MealDB, Open Brewery DB) — not `BaseIntegration`.
+Wine is a **journal** (tastings), not bottle inventory. WineAPI calls go through `UpstreamDailyBudget` (100/day) with search headroom reserved for enrichment. Catalog tables are global; user cellar/kitchen/beer/library rows are ownership-scoped with soft deletes. Keyless/API-key providers use `ProviderHttpClient` + `UpstreamRateGate` (WineAPI, MealDB, Open Brewery DB, Open Library) — not `BaseIntegration`.
+
+Library is a **shelf** (status + notes), not a reading-session journal. Open Library match is always user-confirmed.
 
 ### Integrations note
 

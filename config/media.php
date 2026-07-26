@@ -104,6 +104,8 @@ return [
         'cellar_wine' => App\Models\Cellar\CellarWine::class,
         'kitchen_recipe' => App\Models\Kitchen\KitchenRecipe::class,
         'beer_beer' => App\Models\Beer\BeerBeer::class,
+        'library_book' => App\Models\Library\LibraryBook::class,
+        'library_catalog_book' => App\Models\LibraryCatalog\LibraryCatalogBook::class,
         'wine_catalog_wine' => App\Models\WineCatalog\WineCatalogWine::class,
     ],
 
@@ -128,6 +130,10 @@ return [
         'mealdb' => [
             'enabled' => (bool) env('MEDIA_MIRROR_MEALDB', true),
             'on_save_only' => true,
+            'collection' => 'mirror',
+        ],
+        'openlibrary' => [
+            'enabled' => (bool) env('MEDIA_MIRROR_OPENLIBRARY', true),
             'collection' => 'mirror',
         ],
         'spotify' => [

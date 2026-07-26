@@ -118,6 +118,11 @@ return [
             'decay_seconds' => (int) env('OPENBREWERYDB_RATE_DECAY', 60),
             'max_wait_seconds' => (int) env('OPENBREWERYDB_RATE_MAX_WAIT', 5),
         ],
+        'openlibrary' => [
+            'max_attempts' => (int) env('OPENLIBRARY_RATE_MAX', 40),
+            'decay_seconds' => (int) env('OPENLIBRARY_RATE_DECAY', 60),
+            'max_wait_seconds' => (int) env('OPENLIBRARY_RATE_MAX_WAIT', 5),
+        ],
         'cloudinary' => [
             'max_attempts' => (int) env('CLOUDINARY_RATE_MAX', 60),
             'decay_seconds' => (int) env('CLOUDINARY_RATE_DECAY', 60),
@@ -158,6 +163,15 @@ return [
         'base_url' => env('OPENBREWERYDB_BASE_URL', 'https://api.openbrewerydb.org/v1'),
         'timeout' => (int) env('OPENBREWERYDB_TIMEOUT', 12),
         'cache_seconds' => (int) env('OPENBREWERYDB_CACHE_SEC', 86400),
+    ],
+
+    'openlibrary' => [
+        'base_url' => env('OPENLIBRARY_BASE_URL', 'https://openlibrary.org'),
+        'covers_base_url' => env('OPENLIBRARY_COVERS_BASE_URL', 'https://covers.openlibrary.org'),
+        'timeout' => (int) env('OPENLIBRARY_TIMEOUT', 15),
+        'search_cache_seconds' => (int) env('OPENLIBRARY_SEARCH_CACHE_SEC', 3600),
+        'work_cache_seconds' => (int) env('OPENLIBRARY_WORK_CACHE_SEC', 86400),
+        'user_agent' => env('OPENLIBRARY_USER_AGENT', 'NexusHub/1.0 (personal library; local-dev)'),
     ],
 
     'openf1' => [

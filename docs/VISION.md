@@ -21,7 +21,7 @@ These are directional milestones. When a milestone becomes active work, research
 | **Cellar** | Wine drinking journal + WineAPI enrichment |
 | **Kitchen** | TheMealDB recipe library |
 | **Beer** | Beer log + brewery links |
-| **Library** | Book collection (future) |
+| **Library** | Book shelf + Open Library enrichment |
 | **Media vaults** | Personal media libraries |
 | **Social (e.g. Instagram)** | Optional social/media integrations where useful |
 | **Sports & F1** | Schedules, standings, live/weekend sports context |
