@@ -102,6 +102,52 @@ return [
             'decay_seconds' => (int) env('OPENF1_RATE_DECAY', 60),
             'max_wait_seconds' => (int) env('OPENF1_RATE_MAX_WAIT', 0),
         ],
+        'wineapi' => [
+            'max_attempts' => (int) env('WINEAPI_RATE_MAX', 20),
+            'decay_seconds' => (int) env('WINEAPI_RATE_DECAY', 60),
+            // Fail fast — EnrichWineJob releases until budget resets.
+            'max_wait_seconds' => (int) env('WINEAPI_RATE_MAX_WAIT', 0),
+        ],
+        'mealdb' => [
+            'max_attempts' => (int) env('MEALDB_RATE_MAX', 30),
+            'decay_seconds' => (int) env('MEALDB_RATE_DECAY', 60),
+            'max_wait_seconds' => (int) env('MEALDB_RATE_MAX_WAIT', 5),
+        ],
+        'openbrewerydb' => [
+            'max_attempts' => (int) env('OPENBREWERYDB_RATE_MAX', 60),
+            'decay_seconds' => (int) env('OPENBREWERYDB_RATE_DECAY', 60),
+            'max_wait_seconds' => (int) env('OPENBREWERYDB_RATE_MAX_WAIT', 5),
+        ],
+    ],
+
+    'wineapi' => [
+        'api_key' => env('WINEAPI_API_KEY'),
+        'base_url' => env('WINEAPI_BASE_URL', 'https://api.wineapi.io'),
+        'timeout' => (int) env('WINEAPI_TIMEOUT', 15),
+        'daily_limit' => (int) env('WINEAPI_DAILY_LIMIT', 100),
+        'budget_timezone' => env('WINEAPI_BUDGET_TZ', 'UTC'),
+        // Headroom reserved for enrichment so search cannot starve the queue.
+        'reserve_for_enrichment' => (int) env('WINEAPI_RESERVE_ENRICHMENT', 20),
+        'search_cache_seconds' => (int) env('WINEAPI_SEARCH_CACHE_SEC', 3600),
+        'enrichment_ttl_days' => (int) env('WINEAPI_ENRICHMENT_TTL_DAYS', 90),
+        'enrichment_max_attempts' => (int) env('WINEAPI_ENRICHMENT_MAX_ATTEMPTS', 5),
+        'sync' => [
+            'queue' => env('WINEAPI_SYNC_QUEUE', 'default'),
+            'rate_limit_release_seconds' => (int) env('WINEAPI_RATE_RELEASE', 60),
+        ],
+    ],
+
+    'mealdb' => [
+        'api_key' => env('MEALDB_API_KEY', '1'),
+        'base_url' => env('MEALDB_BASE_URL', 'https://www.themealdb.com/api/json/v1'),
+        'timeout' => (int) env('MEALDB_TIMEOUT', 12),
+        'cache_seconds' => (int) env('MEALDB_CACHE_SEC', 86400),
+    ],
+
+    'openbrewerydb' => [
+        'base_url' => env('OPENBREWERYDB_BASE_URL', 'https://api.openbrewerydb.org/v1'),
+        'timeout' => (int) env('OPENBREWERYDB_TIMEOUT', 12),
+        'cache_seconds' => (int) env('OPENBREWERYDB_CACHE_SEC', 86400),
     ],
 
     'openf1' => [

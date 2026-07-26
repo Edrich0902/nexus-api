@@ -55,23 +55,37 @@ Local redirect URI: `http://127.0.0.1:80/spotify/callback` (exact match in Spoti
 
 ---
 
-## Milestone 2 — Collections (Cellar, Library, Kitchen)
+## Milestone 2 — Food & Drink (Cellar, Kitchen, Beer)
 
-**Intent:** First-party personal collections owned entirely by Nexus.
+**Intent:** Personal wine journal, recipe library, beer log, and pairing/recommendation hub. See [M2-COLLECTIONS-KICKOFF.md](M2-COLLECTIONS-KICKOFF.md).
 
-### Cellar
+### Cellar (done)
 
-Wine inventory — producers, regions, vintages, stock, drinking windows / notes. Schema should anticipate **mobile photo / label capture** as a primary future intake path (not only manual CRUD).
+- [x] Wine drinking journal (one wine + many tastings) — not stock inventory
+- [x] WineAPI search/match (user-confirmed) + catalog enrichment behind daily budget ledger
+- [x] `EnrichWineJob` + hourly retry when quota resets
+- [x] Web: `/cellar`, detail, match dialog, tasting timeline, quota badge
 
-### Library
+### Kitchen (done)
 
-Book catalog and reading status. Same mobile-friendly intake mindset (cover/spine photos later).
+- [x] TheMealDB import + local `meal_catalog_*` / `kitchen_recipes`
+- [x] Ingredient flattening from `strIngredient1..20`
+- [x] Web: `/kitchen`, discover, recipe detail
 
-### Kitchen
+### Beer (done)
 
-Recipes and related personal kitchen content.
+- [x] Self-authored beers + seeded style taxonomy
+- [x] Open Brewery DB search/import + manual brewery creation
+- [x] Web: `/beer`, detail, brewery detail
 
-At kickoff: model the domain lightly, define CRUD + any “quick-log” endpoints the mobile app will need later.
+### Hub (done)
+
+- [x] Pairings CRUD + rule-based suggestions (`config/food_drink.php`)
+- [x] Dashboard `/api/v1/food-drink/*` + web hub `/food-drink`
+
+### Deferred
+
+- Library (books), FastCork/photo intake, own-recipe authoring, image mirroring to object storage
 
 ---
 

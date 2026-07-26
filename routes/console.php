@@ -4,6 +4,7 @@ use App\Jobs\Github\SyncAllGithubUsersJob;
 use App\Jobs\F1\SyncF1ChampionshipJob;
 use App\Jobs\F1\SyncF1SeasonJob;
 use App\Jobs\F1\SyncF1SessionDetailJob;
+use App\Jobs\FoodDrink\RetryPendingWineEnrichmentJob;
 use App\Jobs\Sports\SyncFootballStandingsJob;
 use App\Jobs\Sports\SyncSportsDayJob;
 use App\Jobs\Sports\SyncSportsFixturesJob;
@@ -55,5 +56,12 @@ Schedule::job(new SyncF1ChampionshipJob)
     ->withoutOverlapping(30);
 
 Schedule::job(new SyncF1SessionDetailJob)
+    ->hourly()
+    ->withoutOverlapping(30);
+
+/*
+ * Food & Drink: drain WineAPI enrichment queue when daily budget resets.
+ */
+Schedule::job(new RetryPendingWineEnrichmentJob)
     ->hourly()
     ->withoutOverlapping(30);

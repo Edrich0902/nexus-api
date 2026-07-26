@@ -29,14 +29,16 @@ Vision and sequencing: [VISION.md](VISION.md), [ROADMAP.md](ROADMAP.md).
 
 Each module is a vertical slice: migrations, models, services, jobs, and API routes. Details below are **directional** — finalized when that milestone is specified.
 
-| Module | Prefix (planned) | Role |
-|--------|------------------|------|
+| Module | Prefix | Role |
+|--------|--------|------|
 | Auth / users | `/api/v1/auth/*` | Sanctum login, tokens, current user |
 | Spotify | `/api/v1/spotify/*` | Connect remote + listening sync & live player proxy |
 | GitHub | `/api/v1/github/*` | Developer activity / context |
-| Cellar | `/api/v1/cellar/*` | Wine collection |
-| Library | `/api/v1/library/*` | Book collection |
-| Kitchen | `/api/v1/kitchen/*` | Recipes |
+| Food & Drink | `/api/v1/food-drink/*` | Dashboard, pairings, suggestions |
+| Cellar | `/api/v1/cellar/*` | Wine drinking journal + WineAPI enrichment |
+| Kitchen | `/api/v1/kitchen/*` | TheMealDB recipe imports |
+| Beer | `/api/v1/beer/*` | Beer log + Open Brewery DB / manual breweries |
+| Library | `/api/v1/library/*` (future) | Book collection |
 | Media vaults | `/api/v1/media/*` (TBD) | Personal media libraries |
 | Social | TBD | Optional (e.g. Instagram) |
 | Sports / F1 | `/api/v1/sports/*`, `/api/v1/f1/*` | Schedules, standings, ticker; F1 historical OpenF1 |
@@ -51,9 +53,9 @@ URI versioning (`/api/v1/...`). Routes are modular:
 
 HTTP flow: **Form Request → Controller → Service → API Resource**. Controllers stay thin; business logic lives in `app/Services/{Module}/`.
 
-### Collections note (Cellar & Library)
+### Food & Drink note
 
-CRUD on the web is the first surface. Schema and endpoints should leave room for **mobile photo / label intake** as a primary future path for adding bottles and books.
+Wine is a **journal** (tastings), not bottle inventory. WineAPI calls go through `UpstreamDailyBudget` (100/day) with search headroom reserved for enrichment. Catalog tables are global; user cellar/kitchen/beer rows are ownership-scoped with soft deletes. Keyless/API-key providers use `ProviderHttpClient` + `UpstreamRateGate` (WineAPI, MealDB, Open Brewery DB) — not `BaseIntegration`.
 
 ### Integrations note
 

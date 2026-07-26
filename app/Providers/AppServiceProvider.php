@@ -113,6 +113,46 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('f1-read', function (Request $request) {
             return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
         });
+
+        RateLimiter::for('cellar-read', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('cellar-write', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('cellar-match', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('kitchen-read', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('kitchen-write', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('kitchen-search', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('beer-read', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('beer-write', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('brewery-search', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('food-drink-read', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
     }
 
     private function configureHttps(): void

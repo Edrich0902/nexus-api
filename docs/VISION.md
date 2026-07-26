@@ -17,10 +17,12 @@ These are directional milestones. When a milestone becomes active work, research
 | **Foundation & Auth** | Secure, token-based API ready for SPA and mobile |
 | **Spotify** | Listening history, connection, and personal music analytics |
 | **GitHub** | Personal developer activity and repo/context surfaces |
-| **Cellar** | Wine collection inventory; mobile photo/label intake later |
-| **Library** | Book collection and reading status; mobile photo intake later |
-| **Kitchen** | Personal recipes and related kitchen content |
-| **Media vaults** | Personal media libraries / vault surfaces |
+| **Food & Drink** | Hub dashboard, pairings, suggestions |
+| **Cellar** | Wine drinking journal + WineAPI enrichment |
+| **Kitchen** | TheMealDB recipe library |
+| **Beer** | Beer log + brewery links |
+| **Library** | Book collection (future) |
+| **Media vaults** | Personal media libraries |
 | **Social (e.g. Instagram)** | Optional social/media integrations where useful |
 | **Sports & F1** | Schedules, standings, live/weekend sports context |
 | **Mobile app** | Same API; photo-first collection workflows |
