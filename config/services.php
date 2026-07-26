@@ -109,6 +109,8 @@ return [
         'timeout' => (int) env('OPENF1_TIMEOUT', 20),
         'sync' => [
             'rate_limit_release_seconds' => (int) env('OPENF1_RATE_RELEASE', 45),
+            // Free tier locks the whole API during live sessions — release jobs for later.
+            'live_lockout_release_seconds' => (int) env('OPENF1_LIVE_LOCKOUT_RELEASE', 1800),
             'queue' => env('OPENF1_SYNC_QUEUE', 'default'),
             // Minutes after session end before treating data as historical (free tier).
             'live_buffer_minutes' => (int) env('OPENF1_LIVE_BUFFER_MIN', 35),

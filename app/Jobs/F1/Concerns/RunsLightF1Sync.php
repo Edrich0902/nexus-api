@@ -3,6 +3,7 @@
 namespace App\Jobs\F1\Concerns;
 
 use App\Integrations\Exceptions\IntegrationException;
+use App\Integrations\OpenF1\OpenF1ProviderHealth;
 use Illuminate\Support\Facades\Cache;
 
 trait RunsLightF1Sync
@@ -11,9 +12,17 @@ trait RunsLightF1Sync
     {
         try {
             $callback();
+            OpenF1ProviderHealth::rememberAvailable();
 
             return true;
         } catch (IntegrationException $e) {
+            if (OpenF1ProviderHealth::isLiveLockout($e)) {
+                OpenF1ProviderHealth::rememberLockout($e);
+                $this->release(OpenF1ProviderHealth::releaseSeconds());
+
+                return false;
+            }
+
             if ($e->statusCode !== 429) {
                 throw $e;
             }

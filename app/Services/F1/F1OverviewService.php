@@ -3,6 +3,7 @@
 namespace App\Services\F1;
 
 use App\Integrations\OpenF1\OpenF1Integration;
+use App\Integrations\OpenF1\OpenF1ProviderHealth;
 use App\Jobs\F1\SyncF1SessionDetailJob;
 use App\Models\F1\F1ChampionshipDriver;
 use App\Models\F1\F1ChampionshipTeam;
@@ -58,6 +59,7 @@ class F1OverviewService
                     'finished_at',
                 ]),
             'live_tracking' => false,
+            'provider_health' => OpenF1ProviderHealth::snapshot(),
             'rate_limit' => config('services.rate_limits.openf1'),
         ];
     }

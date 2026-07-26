@@ -93,6 +93,17 @@ class SyncF1ReplayJob implements ShouldQueue
                     self::dispatch($this->sessionKey, $remaining)->delay(now()->addSeconds(2));
                 }
             } catch (\Throwable $e) {
+                if ($e instanceof \App\Integrations\Exceptions\IntegrationException
+                    && \App\Integrations\OpenF1\OpenF1ProviderHealth::isLiveLockout($e)) {
+                    // Keep pending — worker will retry after the live window.
+                    $session->forceFill([
+                        'replay_status' => F1Session::REPLAY_PENDING,
+                        'replay_error' => 'OpenF1 live-session lockout — retrying later.',
+                    ])->save();
+
+                    throw $e;
+                }
+
                 $session->forceFill([
                     'replay_status' => F1Session::REPLAY_FAILED,
                     'replay_error' => $e->getMessage(),

@@ -29,7 +29,9 @@ class IntegrationException extends RuntimeException
                 ? $payload['error']
                 : (is_string($payload['message'] ?? null)
                     ? $payload['message']
-                    : (is_string($payload['error_description'] ?? null) ? $payload['error_description'] : 'Request failed.')));
+                    : (is_string($payload['detail'] ?? null)
+                        ? $payload['detail']
+                        : (is_string($payload['error_description'] ?? null) ? $payload['error_description'] : 'Request failed.'))));
 
         // Upstream provider 401/403 auth failures are integration problems, not Nexus auth.
         if ($status === 401) {

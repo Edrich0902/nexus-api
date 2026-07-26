@@ -38,6 +38,7 @@ class F1ReplayService
             'available' => $session->isHistoricallyAvailable(),
             'synced_at' => $session->replay_synced_at?->toIso8601String(),
             'location_count' => F1LocationSample::query()->where('session_key', $sessionKey)->count(),
+            'provider_health' => \App\Integrations\OpenF1\OpenF1ProviderHealth::snapshot(),
         ];
     }
 

@@ -58,9 +58,8 @@ class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
     protected function gate(): void
     {
         Gate::define('viewTelescope', function (User $user) {
-            return in_array($user->email, [
-                //
-            ]);
+            // Solo Nexus install — any authenticated user may open Telescope.
+            return $user->exists;
         });
     }
 }
