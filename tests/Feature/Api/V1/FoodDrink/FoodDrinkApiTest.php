@@ -19,10 +19,14 @@ class FoodDrinkApiTest extends TestCase
         parent::setUp();
 
         config([
-            'services.wineapi.daily_limit' => 100,
-            'services.wineapi.reserve_for_enrichment' => 20,
-            'services.wineapi.budget_timezone' => 'UTC',
-            'services.wineapi.api_key' => 'test',
+            'services.gemini.api_key' => 'test',
+            'services.gemini.cascade' => ['gemma-4-31b-it'],
+            'services.gemini.models.gemma-4-31b-it' => [
+                'label' => 'Gemma 4 31B',
+                'rpm' => 30,
+                'rpd' => 14400,
+                'supports_vision' => true,
+            ],
         ]);
     }
 
@@ -43,12 +47,15 @@ class FoodDrinkApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('counts.wines', 1)
             ->assertJsonPath('counts.recipes', 1)
+            ->assertJsonPath('counts.spirits', 0)
             ->assertJsonPath('recent_wines.0.id', $wine->id)
             ->assertJsonPath('recent_wines.0.name', $wine->name)
             ->assertJsonStructure([
                 'recent_wines' => [['id', 'name', 'media', 'image_url']],
                 'recent_beers',
+                'recent_spirits',
                 'top_recipes' => [['id', 'media', 'image_url']],
+                'quota' => ['models', 'any_available'],
             ]);
 
         // Cached response must stay plain arrays (no __PHP_Incomplete_Class).

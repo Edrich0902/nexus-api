@@ -21,6 +21,10 @@ Route::prefix('beer')->middleware('auth:sanctum')->group(function (): void {
         ->whereNumber('beer')
         ->middleware('throttle:beer-write');
 
+    Route::post('/beers/{beer}/analyse', [BeerController::class, 'analyse'])
+        ->whereNumber('beer')
+        ->middleware('throttle:drink-analyse');
+
     Route::get('/breweries', [BeerController::class, 'listBreweries'])
         ->middleware('throttle:beer-read');
     Route::get('/breweries/search', [BeerController::class, 'searchBreweries'])

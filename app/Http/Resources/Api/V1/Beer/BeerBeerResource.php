@@ -23,6 +23,12 @@ class BeerBeerResource extends JsonResource
             'notes' => $this->notes,
             'media' => $this->mediaImagePayload(),
             'image_url' => $this->resolvedImageUrl(),
+            'analysis_status' => $this->analysis_status ?? 'none',
+            'analysed_at' => $this->analysed_at?->toIso8601String(),
+            'analysis_model' => $this->analysis_model,
+            'analysis_prompt_version' => $this->analysis_prompt_version,
+            'analysis_error' => $this->analysis_error,
+            'ai_analysis' => $this->ai_analysis,
             'brewery' => $this->whenLoaded('brewery', fn () => $this->brewery ? [
                 'id' => $this->brewery->id,
                 'name' => $this->brewery->name,

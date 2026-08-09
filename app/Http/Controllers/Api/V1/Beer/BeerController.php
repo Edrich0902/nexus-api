@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api\V1\Beer;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\Analysis\AnalyseDrinkRequest;
 use App\Http\Requests\Api\V1\Beer\ImportBreweryRequest;
 use App\Http\Requests\Api\V1\Beer\StoreBeerRequest;
 use App\Http\Requests\Api\V1\Beer\StoreManualBreweryRequest;
 use App\Http\Requests\Api\V1\Beer\UpdateBeerRequest;
 use App\Http\Resources\Api\V1\Beer\BeerBeerResource;
 use App\Http\Resources\Api\V1\Beer\BeerBreweryResource;
+use App\Services\Analysis\DrinkAnalysisService;
 use App\Services\Beer\BeerService;
 use App\Services\Beer\BreweryService;
 use Illuminate\Http\JsonResponse;
@@ -20,6 +22,7 @@ class BeerController extends Controller
     public function __construct(
         private readonly BeerService $beers,
         private readonly BreweryService $breweries,
+        private readonly DrinkAnalysisService $analysis,
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -59,6 +62,23 @@ class BeerController extends Controller
         $this->beers->delete($request->user(), $model);
 
         return response()->json(['message' => 'Beer deleted.']);
+    }
+
+    public function analyse(AnalyseDrinkRequest $request, int $beer): JsonResponse
+    {
+        $model = $this->beers->findOwned($request->user(), $beer);
+        $result = $this->analysis->requestAnalysis(
+            $request->user(),
+            $model,
+            (bool) $request->boolean('force'),
+            $request->validated('extra_context'),
+        );
+
+        $response = (new BeerBeerResource($result['model']))->response();
+
+        return $result['status'] === 'pending'
+            ? $response->setStatusCode(202)
+            : $response;
     }
 
     public function styles(): JsonResponse

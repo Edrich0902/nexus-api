@@ -4,9 +4,6 @@ use App\Http\Controllers\Api\V1\Cellar\CellarController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('cellar')->middleware('auth:sanctum')->group(function (): void {
-    Route::get('/quota', [CellarController::class, 'quota'])
-        ->middleware('throttle:cellar-read');
-
     Route::get('/wines', [CellarController::class, 'index'])
         ->middleware('throttle:cellar-read');
     Route::post('/wines', [CellarController::class, 'store'])
@@ -21,18 +18,9 @@ Route::prefix('cellar')->middleware('auth:sanctum')->group(function (): void {
         ->whereNumber('wine')
         ->middleware('throttle:cellar-write');
 
-    Route::get('/wines/{wine}/candidates', [CellarController::class, 'candidates'])
+    Route::post('/wines/{wine}/analyse', [CellarController::class, 'analyse'])
         ->whereNumber('wine')
-        ->middleware('throttle:cellar-match');
-    Route::post('/wines/{wine}/match', [CellarController::class, 'confirmMatch'])
-        ->whereNumber('wine')
-        ->middleware('throttle:cellar-match');
-    Route::post('/wines/{wine}/no-match', [CellarController::class, 'noMatch'])
-        ->whereNumber('wine')
-        ->middleware('throttle:cellar-write');
-    Route::delete('/wines/{wine}/match', [CellarController::class, 'clearMatch'])
-        ->whereNumber('wine')
-        ->middleware('throttle:cellar-write');
+        ->middleware('throttle:drink-analyse');
 
     Route::post('/wines/{wine}/tastings', [CellarController::class, 'storeTasting'])
         ->whereNumber('wine')

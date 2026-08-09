@@ -62,9 +62,9 @@ Local redirect URI: `http://127.0.0.1:80/spotify/callback` (exact match in Spoti
 ### Cellar (done)
 
 - [x] Wine drinking journal (one wine + many tastings) — not stock inventory
-- [x] WineAPI search/match (user-confirmed) + catalog enrichment behind daily budget ledger
-- [x] `EnrichWineJob` + hourly retry when quota resets
-- [x] Web: `/cellar`, detail, match dialog, tasting timeline, quota badge
+- [x] Gemini multi-model AI analysis (photo + text) with shared drink schema; WineAPI removed
+- [x] Analysis persisted on journal rows (`analysis_status` / `ai_analysis`); no auto re-fetch
+- [x] Web: `/cellar`, detail, tastings, AI analysis panel, Gemini pool quota badge
 
 ### Kitchen (done)
 
@@ -76,7 +76,14 @@ Local redirect URI: `http://127.0.0.1:80/spotify/callback` (exact match in Spoti
 
 - [x] Self-authored beers + seeded style taxonomy
 - [x] Open Brewery DB search/import + manual brewery creation
-- [x] Web: `/beer`, detail, brewery detail
+- [x] Gemini AI analysis (same drink schema as wine/spirits)
+- [x] Web: `/beer`, detail, brewery detail, analysis panel
+
+### Spirits (done)
+
+- [x] Self-authored spirits journal + cover media
+- [x] Gemini AI analysis (same drink schema)
+- [x] Web: `/spirits`, detail
 
 ### Hub (done)
 

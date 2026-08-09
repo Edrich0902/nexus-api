@@ -8,6 +8,7 @@ use App\Models\Kitchen\KitchenRecipe;
 use App\Models\Library\LibraryBook;
 use App\Models\LibraryCatalog\LibraryCatalogBook;
 use App\Models\PersonalAccessToken;
+use App\Models\Spirit\SpiritSpirit;
 use App\Models\User;
 use App\Models\WineCatalog\WineCatalogWine;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -43,6 +44,7 @@ class AppServiceProvider extends ServiceProvider
             'cellar_wine' => CellarWine::class,
             'kitchen_recipe' => KitchenRecipe::class,
             'beer_beer' => BeerBeer::class,
+            'spirit_spirit' => SpiritSpirit::class,
             'library_book' => LibraryBook::class,
             'library_catalog_book' => LibraryCatalogBook::class,
             'wine_catalog_wine' => WineCatalogWine::class,
@@ -140,8 +142,8 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
         });
 
-        RateLimiter::for('cellar-match', function (Request $request) {
-            return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
+        RateLimiter::for('drink-analyse', function (Request $request) {
+            return Limit::perMinute(15)->by($request->user()?->id ?: $request->ip());
         });
 
         RateLimiter::for('kitchen-read', function (Request $request) {
@@ -161,6 +163,14 @@ class AppServiceProvider extends ServiceProvider
         });
 
         RateLimiter::for('beer-write', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('spirits-read', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('spirits-write', function (Request $request) {
             return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
         });
 

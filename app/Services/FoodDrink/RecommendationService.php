@@ -7,8 +7,6 @@ use App\Models\Cellar\CellarWine;
 use App\Models\FoodDrink\FoodDrinkPairing;
 use App\Models\Kitchen\KitchenRecipe;
 use App\Models\User;
-use App\Models\WineCatalog\WineCatalogPairing;
-
 use Illuminate\Support\Collection;
 
 /**
@@ -28,7 +26,6 @@ class RecommendationService
 
         $wines = CellarWine::query()
             ->where('user_id', $user->id)
-            ->with(['catalogWine.grapes', 'catalogWine.pairings', 'catalogWine.region'])
             ->get();
 
         $beers = BeerBeer::query()
@@ -119,49 +116,49 @@ class RecommendationService
         $mealName = mb_strtolower((string) ($meal?->name ?? ''));
         $ingredientNames = $meal?->ingredients?->pluck('name')->map(fn ($n) => mb_strtolower((string) $n))->all() ?? [];
 
-        $catalog = $wine->catalogWine;
-        if ($catalog !== null) {
-            foreach ($catalog->pairings ?? [] as $pairing) {
-                /** @var WineCatalogPairing $pairing */
-                $food = mb_strtolower((string) $pairing->food);
-                $confidence = (float) ($pairing->confidence ?? 0.5);
-                if (
-                    ($category !== '' && str_contains($food, $category))
-                    || ($area !== '' && str_contains($food, mb_strtolower($area)))
-                    || ($mealName !== '' && str_contains($food, $mealName))
-                    || collect($ingredientNames)->contains(fn ($ing) => str_contains($food, $ing) || str_contains($ing, $food))
-                ) {
-                    $boost = 2.0 * max(0.2, $confidence);
-                    $score += $boost;
-                    $reasons[] = "WineAPI pairs this wine with {$pairing->food}";
+        $ai = is_array($wine->ai_analysis) ? $wine->ai_analysis : [];
+        $pairings = is_array(data_get($ai, 'narrative.food_pairings'))
+            ? data_get($ai, 'narrative.food_pairings')
+            : [];
+
+        foreach ($pairings as $food) {
+            $food = mb_strtolower((string) $food);
+            if ($food === '') {
+                continue;
+            }
+            if (
+                ($category !== '' && str_contains($food, $category))
+                || ($area !== '' && str_contains($food, mb_strtolower($area)))
+                || ($mealName !== '' && str_contains($food, $mealName))
+                || collect($ingredientNames)->contains(fn ($ing) => str_contains($food, $ing) || str_contains($ing, $food))
+            ) {
+                $score += 1.8;
+                $reasons[] = "AI analysis pairs this wine with {$food}";
+            }
+        }
+
+        $styleMap = config('food_drink.style_to_categories', []);
+        $wineType = mb_strtolower((string) ($wine->wine_type ?? data_get($ai, 'identity.category') ?? ''));
+        foreach ($styleMap as $style => $cats) {
+            if ($wineType === '' || (! str_contains($wineType, (string) $style) && ! str_contains((string) $style, $wineType))) {
+                continue;
+            }
+            foreach ($cats as $cat) {
+                if ($category !== '' && mb_strtolower((string) $cat) === $category) {
+                    $score += 1.0;
+                    $reasons[] = "{$wineType} often suits {$cat} dishes";
                 }
             }
+        }
 
-            $grapeMap = config('food_drink.grape_to_categories', []);
-            foreach ($catalog->grapes ?? [] as $grape) {
-                $key = mb_strtolower((string) $grape->name);
-                foreach ($grapeMap as $grapeName => $cats) {
-                    if (! str_contains($key, $grapeName) && ! str_contains($grapeName, $key)) {
-                        continue;
-                    }
-                    foreach ($cats as $cat) {
-                        if ($category !== '' && mb_strtolower($cat) === $category) {
-                            $score += 1.2;
-                            $reasons[] = "{$grape->name} often suits {$cat} dishes";
-                        }
-                    }
-                }
-            }
-
-            $country = $catalog->region?->country ?? $wine->country;
-            $cuisineMap = config('food_drink.cuisine_to_wine_countries', []);
-            if ($area !== '' && $country && isset($cuisineMap[$area])) {
-                foreach ($cuisineMap[$area] as $matchCountry) {
-                    if (strcasecmp((string) $country, $matchCountry) === 0) {
-                        $score += 0.8;
-                        $reasons[] = "{$country} wines often suit {$area} cuisine";
-                        break;
-                    }
+        $country = $wine->country ?? data_get($ai, 'identity.country');
+        $cuisineMap = config('food_drink.cuisine_to_wine_countries', []);
+        if ($area !== '' && $country && isset($cuisineMap[$area])) {
+            foreach ($cuisineMap[$area] as $matchCountry) {
+                if (strcasecmp((string) $country, (string) $matchCountry) === 0) {
+                    $score += 0.8;
+                    $reasons[] = "{$country} wines often suit {$area} cuisine";
+                    break;
                 }
             }
         }
@@ -169,23 +166,6 @@ class RecommendationService
         if ($wine->rating !== null) {
             $score += ((float) $wine->rating / 5.0) * 1.5;
             $reasons[] = 'Boosted by your wine rating';
-        }
-
-        foreach ($greatHistory as $hist) {
-            if ($hist->drinkable_type !== CellarWine::class) {
-                continue;
-            }
-            $histWine = CellarWine::query()->with('catalogWine.grapes')->find($hist->drinkable_id);
-            $histRecipe = KitchenRecipe::query()->with('meal')->find($hist->kitchen_recipe_id);
-            if ($histWine === null || $histRecipe === null) {
-                continue;
-            }
-            $sameGrape = $this->shareGrape($wine, $histWine);
-            $sameCat = mb_strtolower((string) ($histRecipe->meal?->category ?? '')) === $category && $category !== '';
-            if ($sameGrape && $sameCat) {
-                $score += 1.0;
-                $reasons[] = 'You rated a similar grape×category pairing as great';
-            }
         }
 
         foreach ($poorHistory as $hist) {
@@ -219,12 +199,24 @@ class RecommendationService
         $styleMap = config('food_drink.style_to_categories', []);
         $styleName = mb_strtolower((string) ($beer->style?->name ?? ''));
 
+        $ai = is_array($beer->ai_analysis) ? $beer->ai_analysis : [];
+        $pairings = is_array(data_get($ai, 'narrative.food_pairings'))
+            ? data_get($ai, 'narrative.food_pairings')
+            : [];
+        foreach ($pairings as $food) {
+            $food = mb_strtolower((string) $food);
+            if ($food !== '' && $category !== '' && str_contains($food, $category)) {
+                $score += 1.5;
+                $reasons[] = "AI analysis pairs this beer with {$food}";
+            }
+        }
+
         foreach ($styleMap as $style => $cats) {
-            if ($styleName === '' || (! str_contains($styleName, $style) && ! str_contains($style, $styleName))) {
+            if ($styleName === '' || (! str_contains($styleName, (string) $style) && ! str_contains((string) $style, $styleName))) {
                 continue;
             }
             foreach ($cats as $cat) {
-                if ($category !== '' && mb_strtolower($cat) === $category) {
+                if ($category !== '' && mb_strtolower((string) $cat) === $category) {
                     $score += 1.2;
                     $reasons[] = "{$beer->style?->name} often suits {$cat} dishes";
                 }
@@ -244,13 +236,5 @@ class RecommendationService
         }
 
         return ['score' => $score, 'reasons' => array_values(array_unique($reasons))];
-    }
-
-    private function shareGrape(CellarWine $a, CellarWine $b): bool
-    {
-        $aNames = $a->catalogWine?->grapes?->pluck('name')->map(fn ($n) => mb_strtolower((string) $n))->all() ?? [];
-        $bNames = $b->catalogWine?->grapes?->pluck('name')->map(fn ($n) => mb_strtolower((string) $n))->all() ?? [];
-
-        return count(array_intersect($aNames, $bNames)) > 0;
     }
 }

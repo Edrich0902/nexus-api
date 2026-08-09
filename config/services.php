@@ -102,12 +102,6 @@ return [
             'decay_seconds' => (int) env('OPENF1_RATE_DECAY', 60),
             'max_wait_seconds' => (int) env('OPENF1_RATE_MAX_WAIT', 0),
         ],
-        'wineapi' => [
-            'max_attempts' => (int) env('WINEAPI_RATE_MAX', 20),
-            'decay_seconds' => (int) env('WINEAPI_RATE_DECAY', 60),
-            // Fail fast — EnrichWineJob releases until budget resets.
-            'max_wait_seconds' => (int) env('WINEAPI_RATE_MAX_WAIT', 0),
-        ],
         'mealdb' => [
             'max_attempts' => (int) env('MEALDB_RATE_MAX', 30),
             'decay_seconds' => (int) env('MEALDB_RATE_DECAY', 60),
@@ -135,20 +129,48 @@ return [
         ],
     ],
 
-    'wineapi' => [
-        'api_key' => env('WINEAPI_API_KEY'),
-        'base_url' => env('WINEAPI_BASE_URL', 'https://api.wineapi.io'),
-        'timeout' => (int) env('WINEAPI_TIMEOUT', 15),
-        'daily_limit' => (int) env('WINEAPI_DAILY_LIMIT', 100),
-        'budget_timezone' => env('WINEAPI_BUDGET_TZ', 'UTC'),
-        // Headroom reserved for enrichment so search cannot starve the queue.
-        'reserve_for_enrichment' => (int) env('WINEAPI_RESERVE_ENRICHMENT', 20),
-        'search_cache_seconds' => (int) env('WINEAPI_SEARCH_CACHE_SEC', 3600),
-        'enrichment_ttl_days' => (int) env('WINEAPI_ENRICHMENT_TTL_DAYS', 90),
-        'enrichment_max_attempts' => (int) env('WINEAPI_ENRICHMENT_MAX_ATTEMPTS', 5),
-        'sync' => [
-            'queue' => env('WINEAPI_SYNC_QUEUE', 'default'),
-            'rate_limit_release_seconds' => (int) env('WINEAPI_RATE_RELEASE', 60),
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        // Interactions + legacy model catalogue share this host.
+        'base_url' => env('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
+        // Per HTTP call; AnalyseDrinkJob timeout is 180s across the model cascade.
+        'timeout' => (int) env('GEMINI_TIMEOUT', 45),
+        'connect_timeout' => (int) env('GEMINI_CONNECT_TIMEOUT', 8),
+        'budget_timezone' => env('GEMINI_BUDGET_TZ', 'UTC'),
+        'queue' => env('GEMINI_QUEUE', 'default'),
+        // Preferred order: high-RPD Gemma first, Flash Lite as fallback.
+        'cascade' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env(
+                'GEMINI_CASCADE',
+                'gemma-4-31b-it,gemma-4-26b-a4b-it,gemini-3.5-flash-lite,gemini-3.1-flash-lite',
+            )),
+        ))),
+        'models' => [
+            'gemma-4-31b-it' => [
+                'label' => 'Gemma 4 31B',
+                'rpm' => 30,
+                'rpd' => 14400,
+                'supports_vision' => true,
+            ],
+            'gemma-4-26b-a4b-it' => [
+                'label' => 'Gemma 4 26B',
+                'rpm' => 30,
+                'rpd' => 14400,
+                'supports_vision' => true,
+            ],
+            'gemini-3.5-flash-lite' => [
+                'label' => 'Gemini 3.5 Flash Lite',
+                'rpm' => 15,
+                'rpd' => 500,
+                'supports_vision' => true,
+            ],
+            'gemini-3.1-flash-lite' => [
+                'label' => 'Gemini 3.1 Flash Lite',
+                'rpm' => 15,
+                'rpd' => 500,
+                'supports_vision' => true,
+            ],
         ],
     ],
 

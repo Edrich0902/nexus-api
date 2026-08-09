@@ -3,18 +3,19 @@
 namespace App\Services\FoodDrink;
 
 use App\Http\Resources\Api\V1\FoodDrink\FoodDrinkPairingResource;
-use App\Integrations\WineApi\WineApiIntegration;
+use App\Integrations\Gemini\GeminiModelRouter;
 use App\Models\Beer\BeerBeer;
 use App\Models\Cellar\CellarWine;
 use App\Models\FoodDrink\FoodDrinkPairing;
 use App\Models\Kitchen\KitchenRecipe;
+use App\Models\Spirit\SpiritSpirit;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
 
 class FoodDrinkDashboardService
 {
     public function __construct(
-        private readonly WineApiIntegration $wineApi,
+        private readonly GeminiModelRouter $gemini,
         private readonly RecommendationService $recommendations,
         private readonly PairingService $pairings,
     ) {}
@@ -42,9 +43,9 @@ class FoodDrinkDashboardService
             $wines = CellarWine::query()->where('user_id', $user->id);
             $beers = BeerBeer::query()->where('user_id', $user->id);
             $recipes = KitchenRecipe::query()->where('user_id', $user->id);
+            $spirits = SpiritSpirit::query()->where('user_id', $user->id);
 
             $recentWines = (clone $wines)
-                ->with('catalogWine')
                 ->orderByDesc('created_at')
                 ->limit(5)
                 ->get()
@@ -55,10 +56,9 @@ class FoodDrinkDashboardService
                     'vintage' => $wine->vintage,
                     'rating' => $wine->rating,
                     'match_status' => $wine->match_status,
-                    'media' => $wine->mediaImagePayload()
-                        ?? $wine->catalogWine?->mediaImagePayload(),
-                    'image_url' => $wine->resolvedImageUrl()
-                        ?? $wine->catalogWine?->resolvedImageUrl('image_url'),
+                    'analysis_status' => $wine->analysis_status ?? 'none',
+                    'media' => $wine->mediaImagePayload(),
+                    'image_url' => $wine->resolvedImageUrl(),
                 ])
                 ->values()
                 ->all();
@@ -72,11 +72,29 @@ class FoodDrinkDashboardService
                     'id' => $beer->id,
                     'name' => $beer->name,
                     'rating' => $beer->rating,
+                    'analysis_status' => $beer->analysis_status ?? 'none',
                     'brewery' => $beer->brewery
                         ? ['id' => $beer->brewery->id, 'name' => $beer->brewery->name]
                         : null,
                     'media' => $beer->mediaImagePayload(),
                     'image_url' => $beer->resolvedImageUrl(),
+                ])
+                ->values()
+                ->all();
+
+            $recentSpirits = (clone $spirits)
+                ->orderByDesc('created_at')
+                ->limit(5)
+                ->get()
+                ->map(fn (SpiritSpirit $spirit) => [
+                    'id' => $spirit->id,
+                    'name' => $spirit->name,
+                    'producer' => $spirit->producer,
+                    'category' => $spirit->category,
+                    'rating' => $spirit->rating,
+                    'analysis_status' => $spirit->analysis_status ?? 'none',
+                    'media' => $spirit->mediaImagePayload(),
+                    'image_url' => $spirit->resolvedImageUrl(),
                 ])
                 ->values()
                 ->all();
@@ -108,13 +126,15 @@ class FoodDrinkDashboardService
                 'counts' => [
                     'wines' => (clone $wines)->count(),
                     'beers' => (clone $beers)->count(),
+                    'spirits' => (clone $spirits)->count(),
                     'recipes' => (clone $recipes)->count(),
                     'pairings' => FoodDrinkPairing::query()->where('user_id', $user->id)->count(),
                 ],
                 'recent_wines' => $recentWines,
                 'recent_beers' => $recentBeers,
+                'recent_spirits' => $recentSpirits,
                 'top_recipes' => $topRecipes,
-                'quota' => $this->wineApi->quotaSnapshot(),
+                'quota' => $this->gemini->snapshot(),
                 'suggestions' => $this->recommendations->suggest($user, 5),
                 'recent_pairings' => FoodDrinkPairingResource::collection(
                     $this->pairings->list($user)->take(5)->values(),

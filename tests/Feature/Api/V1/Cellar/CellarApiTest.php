@@ -2,14 +2,12 @@
 
 namespace Tests\Feature\Api\V1\Cellar;
 
-use App\Jobs\FoodDrink\EnrichWineJob;
+use App\Jobs\Analysis\AnalyseDrinkJob;
 use App\Models\Cellar\CellarWine;
 use App\Models\User;
-use App\Models\WineCatalog\WineCatalogWine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -22,16 +20,16 @@ class CellarApiTest extends TestCase
         parent::setUp();
 
         config([
-            'services.wineapi.api_key' => 'test-key',
-            'services.wineapi.base_url' => 'https://api.wineapi.io',
-            'services.wineapi.daily_limit' => 100,
-            'services.wineapi.reserve_for_enrichment' => 20,
-            'services.wineapi.budget_timezone' => 'UTC',
-            'services.wineapi.search_cache_seconds' => 60,
-            'services.rate_limits.wineapi' => [
-                'max_attempts' => 100,
-                'decay_seconds' => 60,
-                'max_wait_seconds' => 0,
+            'services.gemini.api_key' => 'test-key',
+            'services.gemini.base_url' => 'https://generativelanguage.googleapis.com/v1beta',
+            'services.gemini.cascade' => ['gemma-4-31b-it'],
+            'services.gemini.models' => [
+                'gemma-4-31b-it' => [
+                    'label' => 'Gemma 4 31B',
+                    'rpm' => 30,
+                    'rpd' => 14400,
+                    'supports_vision' => true,
+                ],
             ],
         ]);
     }
@@ -85,9 +83,9 @@ class CellarApiTest extends TestCase
             ->assertOk();
     }
 
-    public function test_candidates_search_and_confirm_match_dispatches_enrichment(): void
+    public function test_analyse_queues_job_and_is_idempotent_when_complete(): void
     {
-        Bus::fake([EnrichWineJob::class]);
+        Bus::fake([AnalyseDrinkJob::class]);
         $user = User::factory()->create();
         Sanctum::actingAs($user);
 
@@ -98,126 +96,107 @@ class CellarApiTest extends TestCase
             'vintage' => 2018,
         ]);
 
-        $wineapiId = (string) Str::uuid();
+        $this->postJson("/api/v1/cellar/wines/{$wine->id}/analyse")
+            ->assertStatus(202)
+            ->assertJsonPath('analysis_status', 'pending');
+
+        Bus::assertDispatched(AnalyseDrinkJob::class);
+
+        $wine->forceFill([
+            'analysis_status' => 'complete',
+            'ai_analysis' => [
+                'schema_version' => 1,
+                'domain' => 'wine',
+                'identity' => ['name' => 'Opus One'],
+                'sensory' => [],
+                'narrative' => [],
+                'meta' => ['confidence' => 0.9, 'uncertainties' => [], 'labels_detected' => []],
+            ],
+        ])->save();
+
+        Bus::fake([AnalyseDrinkJob::class]);
+        $this->postJson("/api/v1/cellar/wines/{$wine->id}/analyse")
+            ->assertOk()
+            ->assertJsonPath('analysis_status', 'complete');
+        Bus::assertNotDispatched(AnalyseDrinkJob::class);
+    }
+
+    public function test_analyse_job_persists_payload(): void
+    {
+        $user = User::factory()->create();
+        $wine = CellarWine::factory()->create([
+            'user_id' => $user->id,
+            'name' => 'Test Wine',
+            'producer_name' => null,
+        ]);
 
         Http::fake([
-            'api.wineapi.io/wines/search*' => Http::response([
-                'results' => [[
-                    'id' => $wineapiId,
-                    'name' => 'Opus One',
-                    'vintage' => 2018,
-                    'type' => 'Red',
-                    'winery' => 'Opus One',
-                    'region' => 'Napa Valley',
-                    'country' => 'USA',
-                    'averageRating' => 4.6,
-                    'ratingsCount' => 1200,
-                    'confidence' => 0.95,
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'id' => 'test',
+                'status' => 'completed',
+                'object' => 'interaction',
+                'model' => 'gemini-3.5-flash-lite',
+                'steps' => [[
+                    'type' => 'model_output',
+                    'content' => [[
+                        'type' => 'text',
+                        'text' => json_encode([
+                            'schema_version' => 1,
+                            'domain' => 'wine',
+                            'identity' => [
+                                'name' => 'Test Wine',
+                                'producer' => 'AI Estate',
+                                'brand' => null,
+                                'category' => 'red',
+                                'style' => null,
+                                'vintage_or_age' => '2019',
+                                'region' => 'Stellenbosch',
+                                'country' => 'South Africa',
+                                'abv' => 14.0,
+                                'volume_ml' => 750,
+                            ],
+                            'sensory' => [
+                                'appearance' => 'deep ruby',
+                                'aroma_notes' => ['cherry'],
+                                'taste_notes' => ['plum'],
+                                'finish' => 'long',
+                                'body' => 'full',
+                                'sweetness' => 'dry',
+                                'acidity' => 'medium',
+                                'bitterness' => null,
+                                'bitterness_ibu' => null,
+                                'tannin' => 'firm',
+                                'carbonation' => null,
+                                'mouthfeel' => 'structured',
+                                'smoke_peat' => null,
+                            ],
+                            'narrative' => [
+                                'tasting_notes' => 'Rich and bold.',
+                                'characteristics' => ['bold'],
+                                'interesting_facts' => ['Popular SA wine region'],
+                                'serving_suggestions' => 'Decant 30 min',
+                                'food_pairings' => ['Beef'],
+                                'glassware' => 'Bordeaux',
+                                'serving_temp_c' => ['min' => 16, 'max' => 18],
+                            ],
+                            'meta' => [
+                                'confidence' => 0.85,
+                                'uncertainties' => [],
+                                'labels_detected' => [],
+                            ],
+                        ], JSON_THROW_ON_ERROR),
+                    ]],
                 ]],
-                'total' => 1,
-                'limit' => 20,
-                'offset' => 0,
             ]),
         ]);
 
-        $this->getJson("/api/v1/cellar/wines/{$wine->id}/candidates")
-            ->assertOk()
-            ->assertJsonPath('candidates.0.wineapi_id', $wineapiId)
-            ->assertJsonPath('from_cache', false);
+        $job = new AnalyseDrinkJob('cellar_wine', (int) $wine->id);
+        $job->handle(app(\App\Services\Analysis\DrinkAnalysisService::class));
 
-        // Second call hits cache — no extra upstream request.
-        $this->getJson("/api/v1/cellar/wines/{$wine->id}/candidates")
-            ->assertOk()
-            ->assertJsonPath('from_cache', true);
-
-        $this->postJson("/api/v1/cellar/wines/{$wine->id}/match", [
-            'wineapi_id' => $wineapiId,
-        ])->assertOk()
-            ->assertJsonPath('match_status', CellarWine::MATCH_MATCHED);
-
-        Bus::assertDispatched(EnrichWineJob::class);
-        $this->assertDatabaseHas('wine_catalog_wines', [
-            'wineapi_id' => $wineapiId,
-            'enrichment_status' => WineCatalogWine::ENRICHMENT_QUEUED,
-        ]);
-    }
-
-    public function test_no_match_and_clear_match(): void
-    {
-        $user = User::factory()->create();
-        Sanctum::actingAs($user);
-        $wine = CellarWine::factory()->create(['user_id' => $user->id]);
-
-        $this->postJson("/api/v1/cellar/wines/{$wine->id}/no-match")
-            ->assertOk()
-            ->assertJsonPath('match_status', CellarWine::MATCH_NO_MATCH);
-
-        $this->deleteJson("/api/v1/cellar/wines/{$wine->id}/match")
-            ->assertOk()
-            ->assertJsonPath('match_status', CellarWine::MATCH_UNMATCHED);
-    }
-
-    public function test_quota_endpoint(): void
-    {
-        $user = User::factory()->create();
-        Sanctum::actingAs($user);
-
-        $this->getJson('/api/v1/cellar/quota')
-            ->assertOk()
-            ->assertJsonPath('provider', 'wineapi')
-            ->assertJsonPath('daily_limit', 100)
-            ->assertJsonPath('used', 0);
-    }
-
-    public function test_enrichment_upserts_catalog_graph(): void
-    {
-        $wineapiId = (string) Str::uuid();
-        $catalog = WineCatalogWine::factory()->create([
-            'wineapi_id' => $wineapiId,
-            'enrichment_status' => WineCatalogWine::ENRICHMENT_QUEUED,
-        ]);
-
-        Http::fake([
-            "api.wineapi.io/wines/{$wineapiId}" => Http::response([
-                'id' => $wineapiId,
-                'name' => 'Opus One',
-                'vintage' => 2018,
-                'type' => 'Red',
-                'body' => 'Full',
-                'acidity' => 'Medium',
-                'description' => 'Cabernet blend',
-                'imageUrl' => 'https://example.com/wine.jpg',
-                'averageRating' => 4.6,
-                'ratingsCount' => 1200,
-                'winery' => ['id' => 'w1', 'name' => 'Opus One'],
-                'region' => ['id' => 'r1', 'name' => 'Napa Valley', 'country' => 'USA'],
-                'grapes' => [
-                    ['id' => 'g1', 'name' => 'Cabernet Sauvignon', 'color' => 'red'],
-                ],
-                'scores' => [
-                    ['score' => 96, 'scoreText' => '96', 'reviewer' => 'WS', 'reviewDate' => '2020-01-01'],
-                ],
-                'prices' => [
-                    ['merchantName' => 'Shop', 'price' => 350, 'currency' => 'USD', 'url' => null],
-                ],
-                'pairings' => [
-                    ['food' => 'Steak', 'confidence' => 0.9, 'notes' => 'Classic'],
-                ],
-            ], 200, ['X-Update-Status' => 'complete']),
-        ]);
-
-        /** @var \App\Services\Cellar\WineEnrichmentService $service */
-        $service = app(\App\Services\Cellar\WineEnrichmentService::class);
-        $result = $service->enrich($catalog->fresh());
-
-        $this->assertSame('complete', $result['status']);
-        $this->assertDatabaseHas('wine_catalog_wines', [
-            'id' => $catalog->id,
-            'enrichment_status' => WineCatalogWine::ENRICHMENT_COMPLETE,
-            'body' => 'Full',
-        ]);
-        $this->assertDatabaseHas('wine_catalog_wineries', ['name' => 'Opus One']);
-        $this->assertDatabaseHas('wine_catalog_grapes', ['name' => 'Cabernet Sauvignon']);
-        $this->assertDatabaseHas('wine_catalog_pairings', ['food' => 'Steak']);
+        $wine->refresh();
+        $this->assertSame('complete', $wine->analysis_status);
+        $this->assertSame('AI Estate', $wine->producer_name);
+        $this->assertNotEmpty($wine->analysis_model);
+        $this->assertSame('Beef', $wine->ai_analysis['narrative']['food_pairings'][0] ?? null);
     }
 }

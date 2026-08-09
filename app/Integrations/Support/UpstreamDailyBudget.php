@@ -15,23 +15,56 @@ class UpstreamDailyBudget
 {
     public function reserve(string $provider, int $ceiling): bool
     {
+        return $this->reserveWithDailyLimit($provider, $ceiling, $this->dailyLimit($provider));
+    }
+
+    /**
+     * Reserve against an explicit daily cap (for multi-model pools whose limits live outside services.{provider}).
+     */
+    public function reserveWithDailyLimit(string $provider, int $ceiling, int $dailyLimit): bool
+    {
         $ceiling = max(0, $ceiling);
+        $dailyLimit = max(1, $dailyLimit);
         if ($ceiling === 0) {
             return false;
         }
 
         $usageDate = $this->today($provider);
-        $dailyLimit = $this->dailyLimit($provider);
-
         $this->ensureRow($provider, $usageDate, $dailyLimit);
 
         $granted = DB::table('upstream_request_budgets')
             ->where('provider', $provider)
             ->where('usage_date', $usageDate)
-            ->where('used', '<', $ceiling)
+            ->where('used', '<', min($ceiling, $dailyLimit))
             ->increment('used');
 
         return $granted === 1;
+    }
+
+    public function usedWithTimezone(string $provider, string $timezone, int $dailyLimit): int
+    {
+        $usageDate = CarbonImmutable::now($timezone)->toDateString();
+        $this->ensureRow($provider, $usageDate, $dailyLimit);
+
+        $row = DB::table('upstream_request_budgets')
+            ->where('provider', $provider)
+            ->where('usage_date', $usageDate)
+            ->first();
+
+        return (int) ($row->used ?? 0);
+    }
+
+    public function todayInTimezone(string $timezone): string
+    {
+        return CarbonImmutable::now($timezone)->toDateString();
+    }
+
+    public function secondsUntilResetInTimezone(string $timezone): int
+    {
+        $now = CarbonImmutable::now($timezone);
+        $next = $now->startOfDay()->addDay();
+
+        return max(1, $now->diffInSeconds($next));
     }
 
     public function used(string $provider): int

@@ -3,16 +3,15 @@
 namespace App\Http\Controllers\Api\V1\Cellar;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\V1\Cellar\ConfirmWineMatchRequest;
+use App\Http\Requests\Api\V1\Analysis\AnalyseDrinkRequest;
 use App\Http\Requests\Api\V1\Cellar\StoreCellarWineRequest;
 use App\Http\Requests\Api\V1\Cellar\StoreCellarWineTastingRequest;
 use App\Http\Requests\Api\V1\Cellar\UpdateCellarWineRequest;
 use App\Http\Requests\Api\V1\Cellar\UpdateCellarWineTastingRequest;
 use App\Http\Resources\Api\V1\Cellar\CellarWineResource;
 use App\Http\Resources\Api\V1\Cellar\CellarWineTastingResource;
-use App\Integrations\WineApi\WineApiIntegration;
+use App\Services\Analysis\DrinkAnalysisService;
 use App\Services\Cellar\CellarWineService;
-use App\Services\Cellar\WineMatchService;
 use App\Services\Cellar\WineTastingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,9 +21,8 @@ class CellarController extends Controller
 {
     public function __construct(
         private readonly CellarWineService $wines,
-        private readonly WineMatchService $match,
         private readonly WineTastingService $tastings,
-        private readonly WineApiIntegration $wineApi,
+        private readonly DrinkAnalysisService $analysis,
     ) {}
 
     public function index(Request $request): AnonymousResourceCollection
@@ -71,48 +69,22 @@ class CellarController extends Controller
         return response()->json(['message' => 'Wine deleted.']);
     }
 
-    public function candidates(Request $request, int $wine): JsonResponse
+    public function analyse(AnalyseDrinkRequest $request, int $wine): JsonResponse
     {
         $model = $this->wines->findOwned($request->user(), $wine);
-
-        return response()->json(
-            $this->match->candidates(
-                $request->user(),
-                $model,
-                $request->query('q'),
-            ),
+        $result = $this->analysis->requestAnalysis(
+            $request->user(),
+            $model,
+            (bool) $request->boolean('force'),
+            $request->validated('extra_context'),
         );
-    }
 
-    public function confirmMatch(ConfirmWineMatchRequest $request, int $wine): CellarWineResource
-    {
-        $model = $this->wines->findOwned($request->user(), $wine);
+        $resource = new CellarWineResource($result['model']->loadCount('tastings'));
+        $response = $resource->response();
 
-        return new CellarWineResource(
-            $this->match->confirmMatch(
-                $request->user(),
-                $model,
-                (string) $request->validated('wineapi_id'),
-            ),
-        );
-    }
-
-    public function noMatch(Request $request, int $wine): CellarWineResource
-    {
-        $model = $this->wines->findOwned($request->user(), $wine);
-
-        return new CellarWineResource(
-            $this->match->markNoMatch($request->user(), $model),
-        );
-    }
-
-    public function clearMatch(Request $request, int $wine): CellarWineResource
-    {
-        $model = $this->wines->findOwned($request->user(), $wine);
-
-        return new CellarWineResource(
-            $this->match->clearMatch($request->user(), $model),
-        );
+        return $result['status'] === 'pending'
+            ? $response->setStatusCode(202)
+            : $response;
     }
 
     public function storeTasting(StoreCellarWineTastingRequest $request, int $wine): JsonResponse
@@ -139,10 +111,5 @@ class CellarController extends Controller
         $this->tastings->delete($request->user(), $model);
 
         return response()->json(['message' => 'Tasting deleted.']);
-    }
-
-    public function quota(): JsonResponse
-    {
-        return response()->json($this->wineApi->quotaSnapshot());
     }
 }

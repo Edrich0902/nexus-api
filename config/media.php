@@ -51,6 +51,10 @@ return [
             'max_bytes' => 10 * 1024 * 1024,
             'incoming_transformation' => 'nexus_master',
         ],
+        'spirits' => [
+            'max_bytes' => 10 * 1024 * 1024,
+            'incoming_transformation' => 'nexus_master',
+        ],
         'library' => [
             'max_bytes' => 10 * 1024 * 1024,
             'incoming_transformation' => 'nexus_master',
@@ -104,6 +108,7 @@ return [
         'cellar_wine' => App\Models\Cellar\CellarWine::class,
         'kitchen_recipe' => App\Models\Kitchen\KitchenRecipe::class,
         'beer_beer' => App\Models\Beer\BeerBeer::class,
+        'spirit_spirit' => App\Models\Spirit\SpiritSpirit::class,
         'library_book' => App\Models\Library\LibraryBook::class,
         'library_catalog_book' => App\Models\LibraryCatalog\LibraryCatalogBook::class,
         'wine_catalog_wine' => App\Models\WineCatalog\WineCatalogWine::class,
@@ -120,7 +125,7 @@ return [
     */
     'mirrors' => [
         'wineapi' => [
-            'enabled' => (bool) env('MEDIA_MIRROR_WINEAPI', true),
+            'enabled' => false,
             'collection' => 'mirror',
         ],
         'unsplash' => [

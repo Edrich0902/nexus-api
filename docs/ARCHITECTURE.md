@@ -35,7 +35,10 @@ Each module is a vertical slice: migrations, models, services, jobs, and API rou
 | Spotify | `/api/v1/spotify/*` | Connect remote + listening sync & live player proxy |
 | GitHub | `/api/v1/github/*` | Developer activity / context |
 | Food & Drink | `/api/v1/food-drink/*` | Dashboard, pairings, suggestions |
-| Cellar | `/api/v1/cellar/*` | Wine drinking journal + WineAPI enrichment |
+| Cellar | `/api/v1/cellar/*` | Wine drinking journal + Gemini AI analysis |
+| Beer | `/api/v1/beer/*` | Beer log + OBDB brewery import + Gemini AI analysis |
+| Spirits | `/api/v1/spirits/*` | Spirits journal + Gemini AI analysis |
+| Analysis | `/api/v1/analysis/*` | Multi-model Gemini pool quota snapshot |
 | Kitchen | `/api/v1/kitchen/*` | TheMealDB recipe imports |
 | Beer | `/api/v1/beer/*` | Beer log + Open Brewery DB / manual breweries |
 | Library | `/api/v1/library/*` | Book shelf + Open Library catalog match |
@@ -55,7 +58,7 @@ HTTP flow: **Form Request → Controller → Service → API Resource**. Control
 
 ### Food & Drink note
 
-Wine is a **journal** (tastings), not bottle inventory. WineAPI calls go through `UpstreamDailyBudget` (100/day) with search headroom reserved for enrichment. Catalog tables are global; user cellar/kitchen/beer/library rows are ownership-scoped with soft deletes. Keyless/API-key providers use `ProviderHttpClient` + `UpstreamRateGate` (WineAPI, MealDB, Open Brewery DB, Open Library) — not `BaseIntegration`.
+Wine, beer, and spirits are **journals**, not inventory. Drink AI analysis goes through `GeminiModelRouter` (Gemma 4 + Flash Lite cascade with per-model RPM/RPD and 429 fallback). Shared `DrinkAnalysis` JSON is stored on each journal row. Retired `wine_catalog_*` tables remain in the DB but are no longer written. User cellar/kitchen/beer/spirits/library rows are ownership-scoped with soft deletes. Keyless/API-key providers use `ProviderHttpClient` + `UpstreamRateGate` (Gemini, MealDB, Open Brewery DB, Open Library) — not `BaseIntegration`.
 
 Library is a **shelf** (status + notes), not a reading-session journal. Open Library match is always user-confirmed.
 
@@ -179,7 +182,7 @@ All binary uploads go through Nexus API (never direct browser → Cloudinary).
 | Folders | `nexus/{env}/users/{userId}/{collection}/{ulid}` and `nexus/{env}/mirror/{provider}/{key}` |
 | Transforms | Incoming size cap on upload; named delivery transforms (`nexus_thumb|card|hero|avatar`); no eager |
 | Attach | Morph aliases in `config/media.php` + denormalised cover columns |
-| Mirroring | WineAPI + MealDB-on-save + Unsplash; Spotify/GitHub never |
+| Mirroring | MealDB-on-save + Unsplash + Open Library; Spotify/GitHub never |
 | Usage | `GET /api/v1/media/usage` (Admin API, cached 30m) |
 
 Throttle: `media-read` 60/min, `media-write` 20/min, `media-upload` 10/min, `media-unsplash` 20/min.

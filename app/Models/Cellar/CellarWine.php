@@ -3,6 +3,7 @@
 namespace App\Models\Cellar;
 
 use App\Models\Concerns\HasCoverImage;
+use App\Models\Concerns\HasDrinkAnalysis;
 use App\Models\User;
 use App\Models\WineCatalog\WineCatalogWine;
 use Database\Factories\CellarWineFactory;
@@ -16,6 +17,7 @@ class CellarWine extends Model
 {
     /** @use HasFactory<CellarWineFactory> */
     use HasCoverImage;
+    use HasDrinkAnalysis;
     use HasFactory;
     use SoftDeletes;
 
@@ -46,6 +48,13 @@ class CellarWine extends Model
         'rating',
         'notes',
         'match_status',
+        'analysis_status',
+        'analysed_at',
+        'analysis_model',
+        'analysis_prompt_version',
+        'analysis_error',
+        'ai_analysis',
+        'analysis_media_asset_id',
     ];
 
     protected function casts(): array
@@ -53,6 +62,8 @@ class CellarWine extends Model
         return [
             'vintage' => 'integer',
             'rating' => 'float',
+            'ai_analysis' => 'array',
+            'analysed_at' => 'datetime',
         ];
     }
 

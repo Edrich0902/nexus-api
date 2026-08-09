@@ -3,6 +3,7 @@
 namespace App\Models\Beer;
 
 use App\Models\Concerns\HasCoverImage;
+use App\Models\Concerns\HasDrinkAnalysis;
 use App\Models\User;
 use Database\Factories\BeerBeerFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +15,7 @@ class BeerBeer extends Model
 {
     /** @use HasFactory<BeerBeerFactory> */
     use HasCoverImage;
+    use HasDrinkAnalysis;
     use HasFactory;
     use SoftDeletes;
 
@@ -30,6 +32,13 @@ class BeerBeer extends Model
         'format',
         'rating',
         'notes',
+        'analysis_status',
+        'analysed_at',
+        'analysis_model',
+        'analysis_prompt_version',
+        'analysis_error',
+        'ai_analysis',
+        'analysis_media_asset_id',
     ];
 
     protected function casts(): array
@@ -38,6 +47,8 @@ class BeerBeer extends Model
             'abv' => 'float',
             'ibu' => 'integer',
             'rating' => 'float',
+            'ai_analysis' => 'array',
+            'analysed_at' => 'datetime',
         ];
     }
 

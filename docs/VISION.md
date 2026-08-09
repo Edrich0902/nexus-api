@@ -18,7 +18,9 @@ These are directional milestones. When a milestone becomes active work, research
 | **Spotify** | Listening history, connection, and personal music analytics |
 | **GitHub** | Personal developer activity and repo/context surfaces |
 | **Food & Drink** | Hub dashboard, pairings, suggestions |
-| **Cellar** | Wine drinking journal + WineAPI enrichment |
+| **Cellar** | Wine drinking journal + Gemini AI analysis |
+
+Spirits sits alongside beer under Food & Drink collections.
 | **Kitchen** | TheMealDB recipe library |
 | **Beer** | Beer log + brewery links |
 | **Library** | Book shelf + Open Library enrichment |

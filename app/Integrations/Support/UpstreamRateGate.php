@@ -62,16 +62,39 @@ class UpstreamRateGate
     }
 
     /**
+     * Try once without waiting. Returns false when the RPM window is full.
+     */
+    public function tryAcquire(string $provider, ?int $maxAttempts = null, ?int $decaySeconds = null): bool
+    {
+        $config = $this->configFor($provider, $maxAttempts, $decaySeconds);
+        $key = $this->key($provider);
+
+        return (bool) RateLimiter::attempt(
+            $key,
+            $config['max_attempts'],
+            static fn () => true,
+            $config['decay_seconds'],
+        );
+    }
+
+    public function remaining(string $provider, ?int $maxAttempts = null, ?int $decaySeconds = null): int
+    {
+        $config = $this->configFor($provider, $maxAttempts, $decaySeconds);
+
+        return max(0, RateLimiter::remaining($this->key($provider), $config['max_attempts']));
+    }
+
+    /**
      * @return array{max_attempts: int, decay_seconds: int}
      */
-    private function configFor(string $provider): array
+    private function configFor(string $provider, ?int $maxAttempts = null, ?int $decaySeconds = null): array
     {
         /** @var array{max_attempts?: int, decay_seconds?: int} $config */
         $config = config("services.rate_limits.{$provider}", []);
 
         return [
-            'max_attempts' => max(1, (int) ($config['max_attempts'] ?? 30)),
-            'decay_seconds' => max(1, (int) ($config['decay_seconds'] ?? 60)),
+            'max_attempts' => max(1, $maxAttempts ?? (int) ($config['max_attempts'] ?? 30)),
+            'decay_seconds' => max(1, $decaySeconds ?? (int) ($config['decay_seconds'] ?? 60)),
         ];
     }
 
