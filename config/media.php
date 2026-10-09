@@ -1,5 +1,14 @@
 <?php
 
+use App\Models\Beer\BeerBeer;
+use App\Models\Cellar\CellarWine;
+use App\Models\Kitchen\KitchenRecipe;
+use App\Models\Library\LibraryBook;
+use App\Models\LibraryCatalog\LibraryCatalogBook;
+use App\Models\Spirit\SpiritSpirit;
+use App\Models\User;
+use App\Models\WineCatalog\WineCatalogWine;
+
 return [
 
     /*
@@ -104,14 +113,14 @@ return [
     |--------------------------------------------------------------------------
     */
     'attachable' => [
-        'user' => App\Models\User::class,
-        'cellar_wine' => App\Models\Cellar\CellarWine::class,
-        'kitchen_recipe' => App\Models\Kitchen\KitchenRecipe::class,
-        'beer_beer' => App\Models\Beer\BeerBeer::class,
-        'spirit_spirit' => App\Models\Spirit\SpiritSpirit::class,
-        'library_book' => App\Models\Library\LibraryBook::class,
-        'library_catalog_book' => App\Models\LibraryCatalog\LibraryCatalogBook::class,
-        'wine_catalog_wine' => App\Models\WineCatalog\WineCatalogWine::class,
+        'user' => User::class,
+        'cellar_wine' => CellarWine::class,
+        'kitchen_recipe' => KitchenRecipe::class,
+        'beer_beer' => BeerBeer::class,
+        'spirit_spirit' => SpiritSpirit::class,
+        'library_book' => LibraryBook::class,
+        'library_catalog_book' => LibraryCatalogBook::class,
+        'wine_catalog_wine' => WineCatalogWine::class,
     ],
 
     /*
@@ -158,6 +167,27 @@ return [
     ],
 
     'usage_cache_seconds' => (int) env('MEDIA_USAGE_CACHE_SEC', 1800),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Palette extraction
+    |--------------------------------------------------------------------------
+    |
+    | Dominant colours are pulled from artwork (album art, labels, covers) so
+    | clients can tint the UI. Only HTTPS images on these hosts (or their
+    | subdomains) are ever fetched — never arbitrary URLs.
+    |
+    */
+    'palette' => [
+        'allowed_hosts' => array_filter(explode(',', (string) env(
+            'MEDIA_PALETTE_HOSTS',
+            'scdn.co,spotifycdn.com,res.cloudinary.com,covers.openlibrary.org,themealdb.com,thesportsdb.com,formula1.com',
+        ))),
+        'max_bytes' => (int) env('MEDIA_PALETTE_MAX_BYTES', 5 * 1024 * 1024),
+        'max_pixels' => (int) env('MEDIA_PALETTE_MAX_PIXELS', 24_000_000),
+        'timeout' => (int) env('MEDIA_PALETTE_TIMEOUT', 6),
+        'max_attempts' => 3,
+    ],
 
     'unsplash' => [
         'access_key' => env('UNSPLASH_ACCESS_KEY'),

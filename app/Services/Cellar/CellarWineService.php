@@ -4,12 +4,17 @@ namespace App\Services\Cellar;
 
 use App\Models\Cellar\CellarWine;
 use App\Models\User;
+use App\Services\Activity\ActivityRecorder;
 use App\Services\FoodDrink\FoodDrinkDashboardService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
 class CellarWineService
 {
+    public function __construct(
+        private readonly ActivityRecorder $activity,
+    ) {}
+
     /**
      * @param  array{match_status?: string, q?: string, per_page?: int}  $filters
      * @return LengthAwarePaginator<int, CellarWine>
@@ -62,6 +67,19 @@ class CellarWineService
         ]);
 
         FoodDrinkDashboardService::forget($user);
+
+        $this->activity->record(
+            $user->id,
+            'cellar',
+            'wine.added',
+            trim(($wine->vintage ? $wine->vintage.' ' : '').$wine->name),
+            $wine->producer_name,
+            $wine,
+            array_filter([
+                'wine_type' => $wine->wine_type,
+                'rating' => $wine->rating !== null ? (float) $wine->rating : null,
+            ], fn ($v) => $v !== null),
+        );
 
         return $wine;
     }

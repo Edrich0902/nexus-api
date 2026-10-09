@@ -5,12 +5,15 @@ namespace App\Services\Cellar;
 use App\Models\Cellar\CellarWine;
 use App\Models\Cellar\CellarWineTasting;
 use App\Models\User;
+use App\Services\Activity\ActivityRecorder;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
 class WineTastingService
 {
     public function __construct(
         private readonly CellarWineService $wines,
+        private readonly ActivityRecorder $activity,
     ) {}
 
     /**
@@ -21,7 +24,7 @@ class WineTastingService
         $this->wines->assertOwned($user, $wine);
         $this->assertValidRating($data['rating'] ?? null);
 
-        return CellarWineTasting::query()->create([
+        $tasting = CellarWineTasting::query()->create([
             'user_id' => $user->id,
             'cellar_wine_id' => $wine->id,
             'tasted_on' => $data['tasted_on'],
@@ -30,6 +33,23 @@ class WineTastingService
             'occasion' => $data['occasion'] ?? null,
             'location' => $data['location'] ?? null,
         ]);
+
+        $tastedOn = Carbon::parse($data['tasted_on']);
+        $this->activity->record(
+            $user->id,
+            'cellar',
+            'wine.tasted',
+            trim(($wine->vintage ? $wine->vintage.' ' : '').$wine->name),
+            $tasting->notes,
+            $wine,
+            array_filter([
+                'rating' => $tasting->rating !== null ? (float) $tasting->rating : null,
+                'occasion' => $tasting->occasion,
+            ], fn ($v) => $v !== null),
+            $tastedOn->isToday() ? now() : $tastedOn->setTime(12, 0),
+        );
+
+        return $tasting;
     }
 
     /**

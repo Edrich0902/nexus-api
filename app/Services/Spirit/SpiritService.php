@@ -4,12 +4,17 @@ namespace App\Services\Spirit;
 
 use App\Models\Spirit\SpiritSpirit;
 use App\Models\User;
+use App\Services\Activity\ActivityRecorder;
 use App\Services\FoodDrink\FoodDrinkDashboardService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
 class SpiritService
 {
+    public function __construct(
+        private readonly ActivityRecorder $activity,
+    ) {}
+
     /**
      * @param  array{q?: string, per_page?: int}  $filters
      * @return LengthAwarePaginator<int, SpiritSpirit>
@@ -56,6 +61,19 @@ class SpiritService
         ]);
 
         FoodDrinkDashboardService::forget($user);
+
+        $this->activity->record(
+            $user->id,
+            'spirits',
+            'spirit.added',
+            $spirit->name,
+            collect([$spirit->producer, $spirit->category])->filter()->implode(' · ') ?: null,
+            $spirit,
+            array_filter([
+                'rating' => $spirit->rating !== null ? (float) $spirit->rating : null,
+                'age' => $spirit->age_statement,
+            ], fn ($v) => $v !== null),
+        );
 
         return $spirit;
     }

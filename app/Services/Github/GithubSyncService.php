@@ -6,6 +6,7 @@ use App\Integrations\Github\GithubIntegration;
 use App\Models\Github\GithubRepo;
 use App\Models\Integration\IntegrationConnection;
 use App\Models\User;
+use App\Services\Activity\ActivityRecorder;
 use Illuminate\Support\Carbon;
 
 class GithubSyncService
@@ -13,6 +14,7 @@ class GithubSyncService
     public function __construct(
         private readonly GithubIntegration $github,
         private readonly GithubStatsService $stats,
+        private readonly ActivityRecorder $activity,
     ) {}
 
     public function syncRepos(User $user): void
@@ -46,7 +48,7 @@ class GithubSyncService
                     ? (string) ($repo['owner']['login'] ?? '')
                     : '';
 
-                GithubRepo::query()->updateOrCreate(
+                $model = GithubRepo::query()->updateOrCreate(
                     [
                         'user_id' => $user->id,
                         'github_id' => $githubId,
@@ -70,6 +72,23 @@ class GithubSyncService
                         'starred' => false,
                     ],
                 );
+
+                if (! $model->wasRecentlyCreated && $model->wasChanged('pushed_at') && $model->pushed_at !== null) {
+                    $this->activity->record(
+                        $user->id,
+                        'code',
+                        'repo.pushed',
+                        $model->full_name,
+                        $model->description,
+                        null,
+                        array_filter([
+                            'repo' => $model->full_name,
+                            'language' => $model->language,
+                            'private' => $model->private,
+                        ], fn ($v) => $v !== null),
+                        $model->pushed_at,
+                    );
+                }
             }
 
             $page++;

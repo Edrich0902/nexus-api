@@ -4,11 +4,16 @@ namespace App\Services\Library;
 
 use App\Models\Library\LibraryBook;
 use App\Models\User;
+use App\Services\Activity\ActivityRecorder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
 
 class LibraryBookService
 {
+    public function __construct(
+        private readonly ActivityRecorder $activity,
+    ) {}
+
     /**
      * @param  array{q?: string, status?: string, match_status?: string, per_page?: int}  $filters
      * @return LengthAwarePaginator<int, LibraryBook>
@@ -51,7 +56,7 @@ class LibraryBookService
         $status = $data['status'] ?? LibraryBook::STATUS_WANT;
         $this->assertValidStatus($status);
 
-        return LibraryBook::query()->create([
+        $book = LibraryBook::query()->create([
             'user_id' => $user->id,
             'title' => $data['title'],
             'authors' => $data['authors'] ?? null,
@@ -63,6 +68,10 @@ class LibraryBookService
             'finished_at' => $data['finished_at'] ?? null,
             'match_status' => LibraryBook::MATCH_UNMATCHED,
         ])->load(['catalogBook']);
+
+        $this->recordStatus($book, 'book.added');
+
+        return $book;
     }
 
     public function findOwned(User $user, int $bookId): LibraryBook
@@ -101,9 +110,34 @@ class LibraryBookService
             'started_at',
             'finished_at',
         ])));
+        $statusChanged = $book->isDirty('status');
         $book->save();
 
+        if ($statusChanged) {
+            match ($book->status) {
+                LibraryBook::STATUS_READING => $this->recordStatus($book, 'book.started'),
+                LibraryBook::STATUS_READ => $this->recordStatus($book, 'book.finished'),
+                default => null,
+            };
+        }
+
         return $book->fresh(['catalogBook']) ?? $book;
+    }
+
+    private function recordStatus(LibraryBook $book, string $type): void
+    {
+        $this->activity->record(
+            (int) $book->user_id,
+            'library',
+            $type,
+            $book->title,
+            $book->authors,
+            $book,
+            array_filter([
+                'status' => $book->status,
+                'rating' => $book->rating !== null ? (float) $book->rating : null,
+            ], fn ($v) => $v !== null),
+        );
     }
 
     public function delete(User $user, LibraryBook $book): void
@@ -115,8 +149,8 @@ class LibraryBookService
     /**
      * @return array{
      *   counts: array{want: int, reading: int, read: int, total: int},
-     *   reading: list<\App\Models\Library\LibraryBook>,
-     *   recent: list<\App\Models\Library\LibraryBook>
+     *   reading: list<LibraryBook>,
+     *   recent: list<LibraryBook>
      * }
      */
     public function pulse(User $user): array

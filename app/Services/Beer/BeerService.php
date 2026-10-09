@@ -5,6 +5,7 @@ namespace App\Services\Beer;
 use App\Models\Beer\BeerBeer;
 use App\Models\Beer\BeerStyle;
 use App\Models\User;
+use App\Services\Activity\ActivityRecorder;
 use App\Services\FoodDrink\FoodDrinkDashboardService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -12,6 +13,10 @@ use Illuminate\Validation\ValidationException;
 
 class BeerService
 {
+    public function __construct(
+        private readonly ActivityRecorder $activity,
+    ) {}
+
     /**
      * @param  array{q?: string, per_page?: int}  $filters
      * @return LengthAwarePaginator<int, BeerBeer>
@@ -56,6 +61,19 @@ class BeerService
         ])->load(['brewery', 'style']);
 
         FoodDrinkDashboardService::forget($user);
+
+        $this->activity->record(
+            $user->id,
+            'beer',
+            'beer.added',
+            $beer->name,
+            collect([$beer->brewery?->name, $beer->style?->name])->filter()->implode(' · ') ?: null,
+            $beer,
+            array_filter([
+                'rating' => $beer->rating !== null ? (float) $beer->rating : null,
+                'abv' => $beer->abv !== null ? (float) $beer->abv : null,
+            ], fn ($v) => $v !== null),
+        );
 
         return $beer;
     }

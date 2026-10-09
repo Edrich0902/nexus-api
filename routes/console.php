@@ -1,14 +1,15 @@
 <?php
 
-use App\Jobs\Github\SyncAllGithubUsersJob;
 use App\Jobs\F1\SyncF1ChampionshipJob;
 use App\Jobs\F1\SyncF1SeasonJob;
 use App\Jobs\F1\SyncF1SessionDetailJob;
+use App\Jobs\Github\SyncAllGithubUsersJob;
 use App\Jobs\Sports\SyncFootballStandingsJob;
 use App\Jobs\Sports\SyncSportsDayJob;
 use App\Jobs\Sports\SyncSportsFixturesJob;
 use App\Jobs\Sports\SyncSportsLeaguesJob;
 use App\Jobs\Spotify\SyncAllConnectedUsersJob;
+use App\Models\Activity\ActivityEvent;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Schedule;
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+Schedule::command('model:prune', ['--model' => [ActivityEvent::class]])->dailyAt('03:40');
 
 Schedule::job(new SyncAllConnectedUsersJob('recent'))->everyFifteenMinutes();
 Schedule::job(new SyncAllConnectedUsersJob('tops'))->dailyAt('03:15');

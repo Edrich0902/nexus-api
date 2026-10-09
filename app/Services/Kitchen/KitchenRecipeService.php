@@ -4,6 +4,7 @@ namespace App\Services\Kitchen;
 
 use App\Models\Kitchen\KitchenRecipe;
 use App\Models\User;
+use App\Services\Activity\ActivityRecorder;
 use App\Services\FoodDrink\FoodDrinkDashboardService;
 use App\Services\Media\MediaMirrorService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -14,6 +15,7 @@ class KitchenRecipeService
     public function __construct(
         private readonly MealCatalogService $catalog,
         private readonly MediaMirrorService $mediaMirrors,
+        private readonly ActivityRecorder $activity,
     ) {}
 
     /**
@@ -59,8 +61,19 @@ class KitchenRecipeService
             $recipe->notes = $notes;
         }
         $recipe->save();
+        $isNew = $recipe->wasRecentlyCreated;
 
         $recipe = $recipe->fresh(['meal.ingredients']) ?? $recipe;
+        if ($isNew) {
+            $this->activity->record(
+                $user->id,
+                'kitchen',
+                'recipe.saved',
+                $meal->name,
+                collect([$meal->area, $meal->category])->filter()->implode(' · ') ?: null,
+                $recipe,
+            );
+        }
         if ($recipe->meal !== null && is_string($recipe->meal->thumb_url) && $recipe->meal->thumb_url !== '') {
             $this->mediaMirrors->queueMealdbMirror(
                 $recipe,
@@ -116,7 +129,18 @@ class KitchenRecipeService
         $recipe->save();
         FoodDrinkDashboardService::forget($user);
 
-        return $recipe->fresh(['meal.ingredients']) ?? $recipe;
+        $recipe = $recipe->fresh(['meal.ingredients']) ?? $recipe;
+        $this->activity->record(
+            $user->id,
+            'kitchen',
+            'recipe.cooked',
+            (string) ($recipe->meal?->name ?? 'Recipe'),
+            null,
+            $recipe,
+            ['cooked_count' => (int) $recipe->cooked_count],
+        );
+
+        return $recipe;
     }
 
     public function delete(User $user, KitchenRecipe $recipe): void

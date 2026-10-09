@@ -2,11 +2,12 @@
 
 namespace App\Services\Spotify;
 
+use App\Models\Spotify\SpotifyListeningSettings;
 use App\Models\Spotify\SpotifyListenSample;
 use App\Models\Spotify\SpotifyListenSession;
-use App\Models\Spotify\SpotifyListeningSettings;
 use App\Models\Spotify\SpotifyTrack;
 use App\Models\User;
+use App\Services\Activity\ActivityRecorder;
 use Illuminate\Support\Facades\DB;
 
 class ListeningSessionService
@@ -14,6 +15,7 @@ class ListeningSessionService
     public function __construct(
         private readonly TrackAudioFeaturesService $features,
         private readonly ListeningProfileService $profile,
+        private readonly ActivityRecorder $activity,
     ) {}
 
     /**
@@ -29,7 +31,7 @@ class ListeningSessionService
 
         $track = $this->ensureTrack($spotifyId, $payload);
 
-        return DB::transaction(function () use ($user, $track, $spotifyId, $progressMs, $durationMs, $isPlaying) {
+        return DB::transaction(function () use ($user, $track, $spotifyId, $progressMs, $durationMs) {
             $active = SpotifyListenSession::query()
                 ->where('user_id', $user->id)
                 ->where('status', SpotifyListenSession::STATUS_ACTIVE)
@@ -171,7 +173,7 @@ class ListeningSessionService
         $wrote = false;
 
         if ($weight > 0) {
-            SpotifyListenSample::query()->firstOrCreate(
+            $sample = SpotifyListenSample::query()->firstOrCreate(
                 ['session_id' => $session->id],
                 [
                     'user_id' => $session->user_id,
@@ -182,6 +184,10 @@ class ListeningSessionService
                 ],
             );
             $wrote = true;
+
+            if ($sample->wasRecentlyCreated && $session->track !== null) {
+                $this->activity->listened($sample, $session->track);
+            }
         }
 
         $session->status = SpotifyListenSession::STATUS_CLOSED;
