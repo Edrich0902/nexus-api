@@ -34,7 +34,7 @@ class PaletteExtractor
 
         $sample = imagecreatetruecolor(self::SAMPLE_SIZE, self::SAMPLE_SIZE);
         imagecopyresampled($sample, $source, 0, 0, 0, 0, self::SAMPLE_SIZE, self::SAMPLE_SIZE, imagesx($source), imagesy($source));
-        imagedestroy($source);
+        unset($source);
 
         /** @var array<int, array{n: int, r: int, g: int, b: int}> $buckets */
         $buckets = [];
@@ -56,7 +56,7 @@ class PaletteExtractor
                 $buckets[$key] = $bucket;
             }
         }
-        imagedestroy($sample);
+        unset($sample);
 
         if ($buckets === []) {
             throw new RuntimeException('Image has no opaque pixels.');
@@ -128,14 +128,15 @@ class PaletteExtractor
      */
     private function saturationLightness(array $rgb): array
     {
-        $r = $rgb[0] / 255;
-        $g = $rgb[1] / 255;
-        $b = $rgb[2] / 255;
+        $r = $rgb[0] / 255.0;
+        $g = $rgb[1] / 255.0;
+        $b = $rgb[2] / 255.0;
         $max = max($r, $g, $b);
         $min = min($r, $g, $b);
         $l = ($max + $min) / 2;
         $d = $max - $min;
-        $s = $d === 0.0 ? 0.0 : $d / (1 - abs(2 * $l - 1));
+        $denominator = 1 - abs(2 * $l - 1);
+        $s = $d <= 0.0 || $denominator <= 0.0 ? 0.0 : min(1.0, $d / $denominator);
 
         return [round($s, 4), round($l, 4)];
     }

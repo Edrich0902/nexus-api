@@ -291,4 +291,39 @@ class HubApiTest extends TestCase
 
         $this->assertSame(1, ImagePalette::query()->count());
     }
+
+    public function test_palette_batch_requires_auth_and_bounds_input(): void
+    {
+        $this->postJson('/api/v1/palettes', ['urls' => ['https://i.scdn.co/image/a']])->assertUnauthorized();
+
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->postJson('/api/v1/palettes', ['urls' => []])->assertUnprocessable();
+        $this->postJson('/api/v1/palettes', ['urls' => array_fill(0, 61, 'https://i.scdn.co/image/a')])
+            ->assertUnprocessable();
+        $this->postJson('/api/v1/palettes', ['urls' => [str_repeat('a', 1025)]])->assertUnprocessable();
+    }
+
+    public function test_palette_batch_returns_ready_palettes_and_skips_disallowed_hosts(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+
+        $image = imagecreatetruecolor(20, 20);
+        imagefill($image, 0, 0, imagecolorallocate($image, 30, 30, 220));
+        ob_start();
+        imagepng($image);
+        $png = (string) ob_get_clean();
+
+        Http::fake(['i.scdn.co/*' => Http::response($png, 200, ['Content-Type' => 'image/png'])]);
+        $urls = ['https://i.scdn.co/image/blue', 'https://evil.example.com/a.png'];
+
+        $this->postJson('/api/v1/palettes', ['urls' => $urls])->assertOk();
+
+        $palettes = $this->postJson('/api/v1/palettes', ['urls' => $urls])->assertOk()->json('palettes');
+
+        $this->assertSame(['https://i.scdn.co/image/blue'], array_keys($palettes));
+        $this->assertSame('#1e1edc', $palettes['https://i.scdn.co/image/blue']['dominant']);
+
+        $this->assertSame(1, ImagePalette::query()->count());
+    }
 }

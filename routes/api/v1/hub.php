@@ -12,4 +12,6 @@ Route::middleware('auth:sanctum')->group(function (): void {
         ->middleware('throttle:global-search');
     Route::get('/palette', [HubController::class, 'palette'])
         ->middleware('throttle:palette');
+    Route::post('/palettes', [HubController::class, 'palettes'])
+        ->middleware('throttle:palette');
 });

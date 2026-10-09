@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Hub;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Hub\ActivityIndexRequest;
 use App\Http\Requests\Api\V1\Hub\NowRequest;
+use App\Http\Requests\Api\V1\Hub\PaletteBatchRequest;
 use App\Http\Requests\Api\V1\Hub\PaletteRequest;
 use App\Http\Requests\Api\V1\Hub\SearchRequest;
 use App\Http\Resources\Api\V1\Hub\ActivityEventResource;
@@ -58,5 +59,16 @@ class HubController extends Controller
     public function palette(PaletteRequest $request): JsonResponse
     {
         return response()->json($this->palettes->status((string) $request->validated('url')));
+    }
+
+    /**
+     * Ready palettes for a page of artwork. Disallowed hosts are skipped and
+     * unknown URLs are queued, so missing keys mean "not available yet".
+     */
+    public function palettes(PaletteBatchRequest $request): JsonResponse
+    {
+        $ready = array_filter($this->palettes->forUrls($request->validated('urls')));
+
+        return response()->json(['palettes' => (object) $ready]);
     }
 }
